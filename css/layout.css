@@ -1,0 +1,300 @@
+/* Layout.css - 기본 레이아웃 구조 */
+
+/* 헤더 */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+    padding: 0 var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    gap: var(--spacing-md);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+    min-width: 0;
+}
+
+.header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.app-logo {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.project-title-input {
+    flex: 1;
+    max-width: 300px;
+    font-size: var(--font-size-md);
+    font-weight: 500;
+}
+
+.save-status {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.save-status.saving {
+    color: var(--warning);
+}
+
+.save-status.saved {
+    color: var(--success);
+}
+
+.save-status.error {
+    color: var(--error);
+}
+
+/* 앱 컨테이너 */
+.app-container {
+    display: flex;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
+}
+
+/* 사이드바 */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--bg-secondary);
+    border-right: var(--border-width) solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-normal), transform var(--transition-normal);
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .sidebar-content {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: var(--spacing-sm);
+    border-bottom: var(--border-width) solid var(--border-color);
+    min-height: 40px;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--spacing-md);
+    transition: opacity var(--transition-normal);
+}
+
+/* 메인 컨텐츠 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 레이아웃: 좌우 분할 */
+.main-content.layout-horizontal {
+    flex-direction: row;
+}
+
+/* 에디터 섹션 */
+.editor-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    min-height: 200px;
+    transition: all var(--transition-normal);
+}
+
+.main-content.layout-horizontal .editor-section {
+    border-bottom: none;
+    border-right: var(--border-width) solid var(--border-color);
+}
+
+.editor-section.collapsed {
+    flex: 0;
+    min-height: 40px;
+    overflow: hidden;
+}
+
+.editor-section.collapsed .editor-container {
+    display: none;
+}
+
+/* 미리보기 섹션 */
+.preview-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    min-height: 200px;
+    transition: all var(--transition-normal);
+}
+
+.preview-section.collapsed {
+    flex: 0;
+    min-height: 40px;
+    overflow: hidden;
+}
+
+.preview-section.collapsed .preview-container,
+.preview-section.collapsed .console-container {
+    display: none;
+}
+
+/* 섹션 헤더 */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    min-height: 40px;
+}
+
+.section-title {
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.section-controls {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* 에디터 탭 */
+.editor-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.tab-btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.tab-btn.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+/* 에디터 컨테이너 */
+.editor-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.editor-pane {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    overflow: auto;
+}
+
+.editor-pane.active {
+    display: block;
+}
+
+/* 미리보기 컨테이너 */
+.preview-container {
+    flex: 1;
+    position: relative;
+    background-color: var(--bg-primary);
+    overflow: hidden;
+}
+
+#preview-frame,
+#fullscreen-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: #ffffff;
+}
+
+/* 콘솔 */
+.console-container {
+    height: 150px;
+    border-top: var(--border-width) solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-secondary);
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.console-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+}
+
+.console-message {
+    padding: 2px 0;
+    border-bottom: 1px solid var(--bg-hover);
+}
+
+.console-message.error {
+    color: var(--error);
+}
+
+.console-message.warn {
+    color: var(--warning);
+}
+
+.console-message.info {
+    color: var(--info);
+}

@@ -1,0 +1,240 @@
+/* CSS Variables - 테마 시스템 */
+
+:root {
+    /* 색상 시스템 - Light Theme */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e8e8e8;
+    --bg-hover: #e0e0e0;
+    --bg-active: #d0d0d0;
+
+    --text-primary: #1e1e1e;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+
+    --border-color: #d4d4d4;
+    --border-focus: #007acc;
+
+    --accent-primary: #007acc;
+    --accent-hover: #005a9e;
+    --accent-text: #ffffff;
+
+    --success: #28a745;
+    --warning: #ffc107;
+    --error: #dc3545;
+    --info: #17a2b8;
+
+    /* 에디터 색상 */
+    --editor-bg: #ffffff;
+    --editor-gutter: #f5f5f5;
+    --editor-line-number: #999999;
+    --editor-selection: #add6ff;
+    --editor-cursor: #000000;
+
+    /* 그림자 */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+    /* 간격 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* 크기 */
+    --header-height: 50px;
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 48px;
+    --border-width: 1px;
+
+    /* 폰트 */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+    --font-size-xs: 11px;
+    --font-size-sm: 12px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+
+    /* 전환 효과 */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+
+    /* Border Radius */
+    --radius-sm: 3px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+}
+
+/* Dark Theme */
+.theme-dark {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #252526;
+    --bg-tertiary: #2d2d30;
+    --bg-hover: #37373d;
+    --bg-active: #404040;
+
+    --text-primary: #cccccc;
+    --text-secondary: #999999;
+    --text-tertiary: #666666;
+
+    --border-color: #3e3e42;
+    --border-focus: #007acc;
+
+    --accent-primary: #0e639c;
+    --accent-hover: #1177bb;
+
+    --editor-bg: #1e1e1e;
+    --editor-gutter: #1e1e1e;
+    --editor-line-number: #858585;
+    --editor-selection: #264f78;
+    --editor-cursor: #aeafad;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* 전역 리셋 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    overflow: hidden;
+}
+
+/* 스크롤바 커스텀 (WebKit) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-hover);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-active);
+}
+
+/* 공통 버튼 스타일 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background-color: var(--bg-hover);
+}
+
+.btn:active {
+    background-color: var(--bg-active);
+}
+
+.btn-primary {
+    background-color: var(--accent-primary);
+    color: var(--accent-text);
+    border-color: var(--accent-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+}
+
+.btn-icon {
+    padding: var(--spacing-xs);
+    min-width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-icon:hover {
+    background-color: var(--bg-hover);
+}
+
+.btn-icon-small {
+    padding: 2px 6px;
+    font-size: var(--font-size-xs);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.btn-icon-small:hover {
+    color: var(--text-primary);
+}
+
+/* Input 스타일 */
+input[type="text"],
+select {
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+input[type="text"]:focus,
+select:focus {
+    border-color: var(--border-focus);
+}
+
+/* 숨김 클래스 */
+.hidden {
+    display: none !important;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

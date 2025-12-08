@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeCanvas - 웹 코드 에디터</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/fullscreen.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body class="theme-dark">
+    <!-- 상단 헤더 -->
+    <header class="app-header">
+        <div class="header-left">
+            <h1 class="app-logo">🎨 CodeCanvas</h1>
+            <input type="text" id="project-title" class="project-title-input" placeholder="프로젝트명" value="새 프로젝트">
+        </div>
+        <div class="header-center">
+            <span id="save-status" class="save-status">저장됨</span>
+        </div>
+        <div class="header-right">
+            <button id="btn-save" class="btn btn-primary" title="저장">
+                <span class="icon">💾</span>
+                <span class="text">저장</span>
+            </button>
+            <button id="btn-run" class="btn btn-primary" title="실행 (Ctrl+Enter)">
+                <span class="icon">▶️</span>
+                <span class="text">실행</span>
+            </button>
+            <button id="btn-share" class="btn btn-secondary" title="공유">
+                <span class="icon">🔗</span>
+                <span class="text">공유</span>
+            </button>
+            <button id="btn-layout" class="btn btn-secondary" title="레이아웃 전환 (Ctrl+L)">
+                <span class="icon">⇅</span>
+            </button>
+            <button id="btn-theme" class="btn btn-secondary" title="테마 전환">
+                <span class="icon">🌙</span>
+            </button>
+            <button id="btn-login" class="btn btn-secondary">
+                <span class="icon">👤</span>
+                <span class="text">로그인</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <div class="app-container">
+        <!-- 사이드바 -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <button id="btn-sidebar-toggle" class="btn-icon" title="사이드바 접기 (Ctrl+B)">
+                    <span class="icon">◀</span>
+                </button>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- 파일 탐색기 섹션 -->
+                <section class="sidebar-section">
+                    <h3 class="sidebar-section-title">📁 파일 탐색기</h3>
+                    <div class="file-explorer">
+                        <div class="file-item active">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name">index.html</span>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="sidebar-divider">
+
+                <!-- 내 프로젝트 섹션 -->
+                <section class="sidebar-section">
+                    <div class="section-header">
+                        <h3 class="sidebar-section-title">📋 내 프로젝트</h3>
+                        <div class="view-toggle">
+                            <button id="btn-list-view" class="btn-view active" title="리스트 뷰">
+                                <span class="icon">☰</span>
+                            </button>
+                            <button id="btn-gallery-view" class="btn-view" title="갤러리 뷰">
+                                <span class="icon">▦</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 검색 및 필터 -->
+                    <div class="project-controls">
+                        <input type="text" id="project-search" class="search-input" placeholder="프로젝트 검색...">
+                        <select id="project-sort" class="sort-select">
+                            <option value="modified">최근 수정일순</option>
+                            <option value="created">최근 생성일순</option>
+                            <option value="name">이름순</option>
+                        </select>
+                    </div>
+
+                    <!-- 프로젝트 리스트 -->
+                    <div id="project-list" class="project-list">
+                        <button class="btn-new-project">
+                            <span class="icon">➕</span>
+                            <span>새 프로젝트</span>
+                        </button>
+                        <!-- 프로젝트 항목들이 동적으로 추가됨 -->
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- 메인 작업 영역 -->
+        <main class="main-content">
+            <!-- 에디터 영역 -->
+            <section id="editor-section" class="editor-section">
+                <div class="section-header">
+                    <div class="editor-tabs">
+                        <button class="tab-btn active" data-mode="html">HTML</button>
+                        <button class="tab-btn" data-mode="css">CSS</button>
+                        <button class="tab-btn" data-mode="js">JavaScript</button>
+                        <button class="tab-btn" data-mode="unified">통합</button>
+                    </div>
+                    <div class="section-controls">
+                        <button id="btn-editor-collapse" class="btn-icon" title="에디터 접기 (Ctrl+E)">
+                            <span class="icon">▼</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-container">
+                    <div id="editor-html" class="editor-pane active"></div>
+                    <div id="editor-css" class="editor-pane"></div>
+                    <div id="editor-js" class="editor-pane"></div>
+                    <div id="editor-unified" class="editor-pane"></div>
+                </div>
+            </section>
+
+            <!-- 미리보기 영역 -->
+            <section id="preview-section" class="preview-section">
+                <div class="section-header">
+                    <h3 class="section-title">미리보기</h3>
+                    <div class="section-controls">
+                        <button id="btn-fullscreen-preview" class="btn-icon" title="전체화면 미리보기 (F11)">
+                            <span class="icon">⛶</span>
+                        </button>
+                        <button id="btn-preview-collapse" class="btn-icon" title="미리보기 접기 (Ctrl+P)">
+                            <span class="icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-container">
+                    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                </div>
+                <div class="console-container">
+                    <div class="console-header">
+                        <span>콘솔</span>
+                        <button id="btn-clear-console" class="btn-icon-small">지우기</button>
+                    </div>
+                    <div id="console-output" class="console-output"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 전체화면 미리보기 오버레이 -->
+    <div id="fullscreen-overlay" class="fullscreen-overlay hidden">
+        <div class="fullscreen-header">
+            <h3>전체화면 미리보기</h3>
+            <button id="btn-close-fullscreen" class="btn-icon" title="닫기 (ESC)">
+                <span class="icon">✕</span>
+            </button>
+        </div>
+        <div class="fullscreen-content">
+            <iframe id="fullscreen-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+        </div>
+    </div>
+
+    <!-- 공유 모달 -->
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>프로젝트 공유</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>이 프로젝트를 공유할 수 있는 링크가 생성됩니다.</p>
+                <input type="text" id="share-link" class="share-link-input" readonly>
+                <button id="btn-copy-link" class="btn btn-primary">링크 복사</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CodeMirror 6 -->
+    <script type="module">
+        import {EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars,
+                drawSelection, dropCursor, rectangularSelection, crosshairCursor,
+                highlightActiveLine, EditorState} from "https://esm.sh/codemirror@6.0.1";
+        import {defaultKeymap, history, historyKeymap} from "https://esm.sh/@codemirror/commands@6.3.3";
+        import {searchKeymap, highlightSelectionMatches} from "https://esm.sh/@codemirror/search@6.5.5";
+        import {autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap} from "https://esm.sh/@codemirror/autocomplete@6.12.0";
+        import {foldGutter, indentOnInput, syntaxHighlighting, defaultHighlightStyle,
+                bracketMatching, foldKeymap} from "https://esm.sh/@codemirror/language@6.10.0";
+        import {lintKeymap} from "https://esm.sh/@codemirror/lint@6.5.0";
+        import {html} from "https://esm.sh/@codemirror/lang-html@6.4.7";
+        import {css} from "https://esm.sh/@codemirror/lang-css@6.2.1";
+        import {javascript} from "https://esm.sh/@codemirror/lang-javascript@6.2.1";
+        import {oneDark} from "https://esm.sh/@codemirror/theme-one-dark@6.1.2";
+
+        const basicSetup = [
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            highlightSpecialChars(),
+            history(),
+            foldGutter(),
+            drawSelection(),
+            dropCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+            bracketMatching(),
+            closeBrackets(),
+            autocompletion(),
+            rectangularSelection(),
+            crosshairCursor(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            keymap.of([
+                ...closeBracketsKeymap,
+                ...defaultKeymap,
+                ...searchKeymap,
+                ...historyKeymap,
+                ...foldKeymap,
+                ...completionKeymap,
+                ...lintKeymap
+            ])
+        ];
+
+        window.CodeMirrorModules = {
+            EditorView,
+            EditorState,
+            basicSetup,
+            html,
+            css,
+            javascript,
+            oneDark
+        };
+    </script>
+
+    <!-- JavaScript Modules -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

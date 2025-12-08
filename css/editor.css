@@ -1,0 +1,76 @@
+/* Editor.css - 코드 에디터 스타일 */
+
+.editor-pane {
+    background-color: var(--editor-bg);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    position: relative;
+    height: 100%;
+}
+
+/* Ace Editor 컨테이너 */
+.editor-pane .ace_editor {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* CodeMirror 커스터마이징 */
+.cm-editor {
+    height: 100%;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-mono);
+}
+
+.cm-scroller {
+    overflow: auto;
+}
+
+.cm-content {
+    padding: var(--spacing-md);
+}
+
+.cm-line {
+    padding-left: var(--spacing-sm);
+}
+
+.cm-gutters {
+    background-color: var(--editor-gutter);
+    border-right: var(--border-width) solid var(--border-color);
+}
+
+.cm-lineNumbers .cm-gutterElement {
+    color: var(--editor-line-number);
+    padding: 0 var(--spacing-sm);
+}
+
+.cm-activeLineGutter {
+    background-color: var(--bg-hover);
+}
+
+.cm-activeLine {
+    background-color: var(--bg-hover);
+}
+
+.cm-selectionBackground {
+    background-color: var(--editor-selection) !important;
+}
+
+.cm-cursor {
+    border-left-color: var(--editor-cursor);
+}
+
+.cm-focused .cm-selectionBackground {
+    background-color: var(--editor-selection) !important;
+}
+
+/* 에디터 플레이스홀더 */
+.editor-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-tertiary);
+    font-style: italic;
+}

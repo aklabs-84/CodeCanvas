@@ -1,0 +1,201 @@
+/* Fullscreen.css - 전체화면 미리보기 오버레이 */
+
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fullscreen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-bottom: var(--border-width) solid var(--border-color);
+}
+
+.fullscreen-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fullscreen-content {
+    flex: 1;
+    overflow: hidden;
+    background-color: #ffffff;
+    display: flex;
+}
+
+#fullscreen-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: #ffffff;
+}
+
+/* 전체화면 닫기 버튼 강조 */
+#btn-close-fullscreen {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+}
+
+#btn-close-fullscreen:hover {
+    background-color: var(--error);
+    color: #ffffff;
+}
+
+/* 에디터 전체화면 모드 */
+.editor-section.fullscreen-editor {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9998;
+    background-color: var(--bg-primary);
+    display: flex !important;
+    flex-direction: column;
+    margin: 0 !important;
+}
+
+.editor-section.fullscreen-editor .section-header {
+    background-color: var(--bg-secondary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    padding: var(--spacing-md);
+    flex-shrink: 0;
+}
+
+.editor-section.fullscreen-editor .editor-container {
+    flex: 1;
+    height: auto !important;
+    overflow: hidden;
+}
+
+.editor-section.fullscreen-editor .editor-pane {
+    height: 100% !important;
+}
+
+.editor-section.fullscreen-editor .ace_editor {
+    height: 100% !important;
+}
+
+/* 에디터 전체화면 닫기 버튼 스타일 */
+.btn-close-fullscreen-editor {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+}
+
+.btn-close-fullscreen-editor:hover {
+    background-color: var(--error);
+    color: #ffffff;
+}
+
+/* 모달 공통 스타일 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 8888;
+    animation: fadeIn var(--transition-normal);
+}
+
+.modal-content {
+    background-color: var(--bg-primary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    max-width: 500px;
+    width: 90%;
+    animation: slideUp var(--transition-normal);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: var(--border-width) solid var(--border-color);
+}
+
+.modal-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btn-close-modal {
+    background: transparent;
+    border: none;
+    font-size: var(--font-size-xl);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.btn-close-modal:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: var(--spacing-lg);
+}
+
+.modal-body p {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+}
+
+.share-link-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+}
+
+.modal-body .btn {
+    width: 100%;
+}

@@ -1,0 +1,255 @@
+/* Responsive.css - 반응형 스타일 */
+
+/* 태블릿 (768px ~ 1024px) */
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-width: 240px;
+        --header-height: 48px;
+    }
+
+    .app-header {
+        padding: 0 var(--spacing-sm);
+    }
+
+    .header-right .btn .text {
+        display: none;
+    }
+
+    .project-title-input {
+        max-width: 200px;
+    }
+
+    .app-logo {
+        font-size: var(--font-size-lg);
+    }
+}
+
+/* 모바일 (최대 768px) */
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 100%;
+        --header-height: 56px;
+    }
+
+    /* 헤더 조정 */
+    .app-header {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--header-height);
+    }
+
+    .header-left {
+        order: 1;
+        flex: 0 0 auto;
+    }
+
+    .header-right {
+        order: 2;
+        flex: 0 0 auto;
+    }
+
+    .header-center {
+        order: 3;
+        flex: 1 0 100%;
+        padding-top: var(--spacing-xs);
+    }
+
+    .app-logo {
+        font-size: var(--font-size-md);
+    }
+
+    .project-title-input {
+        max-width: 150px;
+        font-size: var(--font-size-sm);
+    }
+
+    /* 사이드바를 전체 너비 오버레이로 변경 */
+    .sidebar {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        height: calc(100vh - var(--header-height));
+        width: 100%;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform var(--transition-normal);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .sidebar:not(.collapsed) {
+        transform: translateX(0);
+    }
+
+    .sidebar.collapsed {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+
+    /* 사이드바 오버레이 배경 */
+    .sidebar:not(.collapsed)::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: -1;
+    }
+
+    /* 메인 컨텐츠 */
+    .app-container {
+        height: calc(100vh - var(--header-height));
+    }
+
+    .main-content {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    /* 강제 세로 레이아웃 */
+    .main-content.layout-horizontal {
+        flex-direction: column;
+    }
+
+    .editor-section,
+    .preview-section {
+        border-right: none;
+        border-bottom: var(--border-width) solid var(--border-color);
+        min-height: 150px;
+    }
+
+    /* 에디터 탭 */
+    .editor-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .tab-btn {
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    /* 콘솔 높이 조정 */
+    .console-container {
+        height: 100px;
+    }
+
+    /* 프로젝트 리스트 갤러리 뷰 */
+    .project-list.gallery-view {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .project-thumbnail {
+        height: 100px;
+    }
+
+    /* 버튼 텍스트 숨기기 */
+    .btn .text {
+        display: none;
+    }
+
+    .btn .icon {
+        margin: 0;
+    }
+
+    /* 모달 조정 */
+    .modal-content {
+        width: 95%;
+        margin: var(--spacing-md);
+    }
+}
+
+/* 소형 모바일 (최대 480px) */
+@media (max-width: 480px) {
+    :root {
+        --spacing-md: 12px;
+        --spacing-lg: 16px;
+    }
+
+    .app-logo {
+        display: none;
+    }
+
+    .project-title-input {
+        max-width: 120px;
+    }
+
+    .header-right {
+        gap: 4px;
+    }
+
+    .header-right .btn {
+        padding: var(--spacing-xs);
+        min-width: 32px;
+    }
+
+    .editor-section,
+    .preview-section {
+        min-height: 120px;
+    }
+
+    .console-container {
+        height: 80px;
+    }
+
+    .sidebar-content {
+        padding: var(--spacing-sm);
+    }
+
+    .project-list.gallery-view {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: var(--spacing-sm);
+    }
+}
+
+/* 고해상도 데스크톱 (1440px 이상) */
+@media (min-width: 1440px) {
+    :root {
+        --sidebar-width: 320px;
+    }
+
+    .project-list.gallery-view {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .project-thumbnail {
+        height: 140px;
+    }
+}
+
+/* 다크모드 미디어 쿼리 */
+@media (prefers-color-scheme: dark) {
+    body:not(.theme-light) {
+        /* 사용자가 명시적으로 라이트 모드를 선택하지 않았다면 다크모드 적용 */
+    }
+}
+
+/* 접근성: 애니메이션 감소 선호 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 인쇄 스타일 */
+@media print {
+    .app-header,
+    .sidebar,
+    .section-header,
+    .console-container,
+    .fullscreen-overlay,
+    .modal {
+        display: none !important;
+    }
+
+    .main-content {
+        flex-direction: column;
+    }
+
+    .preview-container {
+        page-break-inside: avoid;
+    }
+}
