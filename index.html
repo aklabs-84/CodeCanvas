@@ -71,8 +71,9 @@
                     <div class="file-explorer">
                         <div class="file-item active">
                             <span class="file-icon">📄</span>
-                            <span class="file-name">index.html</span>
+                            <span class="file-name">파일 불러오기</span>
                         </div>
+                        <input type="file" id="local-file-loader" class="visually-hidden" accept=".html,.htm,.css,.js" multiple>
                     </div>
                 </section>
 
@@ -116,6 +117,16 @@
 
         <!-- 메인 작업 영역 -->
         <main class="main-content">
+            <!-- 복구 버튼: 패널이 접혔을 때 보이는 버튼들 -->
+            <button id="btn-editor-restore" class="btn-icon btn-restore" title="에디터 펼치기" style="display:none;">
+                <span class="icon">▶</span>
+            </button>
+            <button id="btn-preview-restore" class="btn-icon btn-restore" title="미리보기 펼치기" style="display:none;">
+                <span class="icon">▶</span>
+            </button>
+            <button id="btn-console-restore" class="btn-icon btn-restore" title="콘솔 펼치기" style="display:none;">
+                <span class="icon">▶</span>
+            </button>
             <!-- 에디터 영역 -->
             <section id="editor-section" class="editor-section">
                 <div class="section-header">
@@ -162,10 +173,13 @@
                     <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
                 </div>
                 <div class="console-container">
-                    <div class="console-header">
-                        <span>콘솔</span>
-                        <button id="btn-clear-console" class="btn-icon-small">지우기</button>
-                    </div>
+                        <div class="console-header">
+                            <span>콘솔</span>
+                            <div class="console-controls">
+                                <button id="btn-clear-console" class="btn-icon-small">지우기</button>
+                                <button id="btn-console-collapse" class="btn-icon-small" title="콘솔 접기">▲</button>
+                            </div>
+                        </div>
                     <div id="console-output" class="console-output"></div>
                 </div>
             </section>

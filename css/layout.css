@@ -163,8 +163,7 @@
     overflow: hidden;
 }
 
-.preview-section.collapsed .preview-container,
-.preview-section.collapsed .console-container {
+.preview-section.collapsed .preview-container {
     display: none;
 }
 
@@ -244,6 +243,11 @@
     position: relative;
     background-color: var(--bg-primary);
     overflow: hidden;
+}
+
+/* preview-container collapsed: hide only iframe/content but keep section header and console visible */
+.preview-container.collapsed {
+    display: none;
 }
 
 #preview-frame,

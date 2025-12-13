@@ -7,6 +7,7 @@ export const LayoutManager = {
         orientation: 'vertical', // 'vertical' | 'horizontal'
         editorCollapsed: false,
         previewCollapsed: false,
+        consoleCollapsed: false,
         fullscreenPreview: false,
         fullscreenEditor: false, // 에디터 전체화면 상태
         editorRatio: 50, // 에디터가 차지하는 비율 (%)
@@ -19,6 +20,7 @@ export const LayoutManager = {
         mainContent: null,
         editorSection: null,
         previewSection: null,
+        previewContainer: null,
         fullscreenOverlay: null,
         btnSidebarToggle: null,
         btnLayout: null,
@@ -28,6 +30,11 @@ export const LayoutManager = {
         btnFullscreenEditor: null, // 에디터 전체화면 버튼
         btnCloseFullscreenEditor: null, // 에디터 전체화면 닫기 버튼
         btnCloseFullscreen: null,
+            btnEditorRestore: null,
+            btnPreviewRestore: null,
+            btnConsoleCollapse: null,
+            btnConsoleRestore: null,
+            consoleContainer: null,
         previewFrame: null,
         fullscreenFrame: null,
     },
@@ -58,6 +65,12 @@ export const LayoutManager = {
             btnFullscreenEditor: document.getElementById('btn-fullscreen-editor'),
             btnCloseFullscreenEditor: document.getElementById('btn-close-fullscreen-editor'),
             btnCloseFullscreen: document.getElementById('btn-close-fullscreen'),
+            btnEditorRestore: document.getElementById('btn-editor-restore'),
+            btnPreviewRestore: document.getElementById('btn-preview-restore'),
+            btnConsoleCollapse: document.getElementById('btn-console-collapse'),
+            btnConsoleRestore: document.getElementById('btn-console-restore'),
+            consoleContainer: document.querySelector('.console-container'),
+            previewContainer: document.querySelector('.preview-container'),
             previewFrame: document.getElementById('preview-frame'),
             fullscreenFrame: document.getElementById('fullscreen-frame'),
         };
@@ -85,6 +98,40 @@ export const LayoutManager = {
         // 미리보기 패널 토글
         elements.btnPreviewCollapse?.addEventListener('click', () => {
             this.togglePreview();
+        });
+
+        // 접힌 상태에서 보이는 복구 버튼 (에디터/미리보기)
+        elements.btnEditorRestore?.addEventListener('click', () => {
+            // 복구 버튼은 항상 펼치기 동작
+            if (this.state.editorCollapsed) {
+                this.state.editorCollapsed = false;
+                this.applyState();
+                this.updateButtonStates();
+                this.saveToLocalStorage();
+            }
+        });
+
+        elements.btnPreviewRestore?.addEventListener('click', () => {
+            if (this.state.previewCollapsed) {
+                this.state.previewCollapsed = false;
+                this.applyState();
+                this.updateButtonStates();
+                this.saveToLocalStorage();
+            }
+        });
+
+        // 콘솔 접기/복구
+        elements.btnConsoleCollapse?.addEventListener('click', () => {
+            this.toggleConsole();
+        });
+
+        elements.btnConsoleRestore?.addEventListener('click', () => {
+            if (this.state.consoleCollapsed) {
+                this.state.consoleCollapsed = false;
+                this.applyState();
+                this.updateButtonStates();
+                this.saveToLocalStorage();
+            }
         });
 
         // 전체화면 미리보기
@@ -196,6 +243,11 @@ export const LayoutManager = {
 
     // 에디터 패널 토글
     toggleEditor() {
+        // 접기 전에 현재 편집기 비율을 저장
+        if (!this.state.editorCollapsed) {
+            this.state.editorRatio = this._computeCurrentEditorRatio();
+        }
+
         this.state.editorCollapsed = !this.state.editorCollapsed;
 
         // 둘 다 접혀있으면 미리보기 자동으로 펼치기
@@ -210,6 +262,11 @@ export const LayoutManager = {
 
     // 미리보기 패널 토글
     togglePreview() {
+        // 접기 전에 현재 편집기 비율을 저장
+        if (!this.state.previewCollapsed) {
+            this.state.editorRatio = this._computeCurrentEditorRatio();
+        }
+
         this.state.previewCollapsed = !this.state.previewCollapsed;
 
         // 둘 다 접혀있으면 에디터 자동으로 펼치기
@@ -217,6 +274,14 @@ export const LayoutManager = {
             this.state.editorCollapsed = false;
         }
 
+        this.applyState();
+        this.updateButtonStates();
+        this.saveToLocalStorage();
+    },
+
+    // 콘솔 패널 토글 (콘솔만 숨기고 헤더는 남김)
+    toggleConsole() {
+        this.state.consoleCollapsed = !this.state.consoleCollapsed;
         this.applyState();
         this.updateButtonStates();
         this.saveToLocalStorage();
@@ -314,6 +379,63 @@ export const LayoutManager = {
             elements.previewSection?.classList.remove('collapsed');
         }
 
+        // 복구 버튼 표시: 에디터가 접혀있을 때만 보이게 함
+        if (elements.btnEditorRestore) {
+            elements.btnEditorRestore.style.display = state.editorCollapsed ? '' : 'none';
+        }
+
+        // 레이아웃 비율 적용 (가로 레이아웃인 경우)
+        if (elements.mainContent?.classList.contains('layout-horizontal')) {
+            if (!state.editorCollapsed && !state.previewCollapsed) {
+                const editorFlexPercent = Math.max(5, Math.min(95, state.editorRatio));
+                if (elements.editorSection) {
+                    elements.editorSection.style.flex = `0 0 ${editorFlexPercent}%`;
+                }
+                if (elements.previewSection) {
+                    elements.previewSection.style.flex = `0 0 ${100 - editorFlexPercent}%`;
+                }
+            } else if (state.editorCollapsed && !state.previewCollapsed) {
+                if (elements.previewSection) elements.previewSection.style.flex = '1 1 0%';
+                if (elements.editorSection) elements.editorSection.style.flex = '0 0 auto';
+            } else if (!state.editorCollapsed && state.previewCollapsed) {
+                if (elements.editorSection) elements.editorSection.style.flex = '1 1 0%';
+                if (elements.previewSection) elements.previewSection.style.flex = '0 0 auto';
+            }
+        } else {
+            // 세로 레이아웃: 높이 기반이므로 기본 flex 값으로 복원
+            if (elements.editorSection) elements.editorSection.style.flex = '';
+            if (elements.previewSection) elements.previewSection.style.flex = '';
+        }
+
+        // 미리보기 패널 접힘 처리
+        if (elements.previewContainer) {
+            if (state.previewCollapsed) {
+                elements.previewContainer.classList.add('collapsed');
+            } else {
+                elements.previewContainer.classList.remove('collapsed');
+            }
+        }
+
+        // 복구 버튼 표시: 미리보기가 접혀있을 때만 보이게 함
+        if (elements.btnPreviewRestore) {
+            elements.btnPreviewRestore.style.display = state.previewCollapsed ? '' : 'none';
+        }
+
+        // 콘솔 영역 접힘 제어: 콘솔은 preview-section 내부에 있으므로
+        // 별도 컨테이너에 collapsed 클래스를 붙여 내용만 숨김
+        if (elements.consoleContainer) {
+            if (state.consoleCollapsed) {
+                elements.consoleContainer.classList.add('collapsed');
+            } else {
+                elements.consoleContainer.classList.remove('collapsed');
+            }
+        }
+
+        // 콘솔 복구 버튼 표시
+        if (elements.btnConsoleRestore) {
+            elements.btnConsoleRestore.style.display = state.consoleCollapsed ? '' : 'none';
+        }
+
         // 전체화면 오버레이 (미리보기 전체화면에만 사용)
         if (state.fullscreenPreview) {
             elements.fullscreenOverlay?.classList.remove('hidden');
@@ -328,23 +450,31 @@ export const LayoutManager = {
             elements.sidebar?.classList.add('hidden');
         } else {
             elements.editorSection?.classList.remove('fullscreen-editor');
-            if (!state.previewCollapsed) {
-                elements.previewSection?.classList.remove('hidden');
-            }
-            if (!state.sidebarCollapsed) {
-                elements.sidebar?.classList.remove('hidden');
-            }
+            elements.previewSection?.classList.remove('hidden');
+            elements.sidebar?.classList.remove('hidden');
         }
 
-        // 특수 레이아웃 모드
-        if (state.editorCollapsed && !state.previewCollapsed) {
-            elements.mainContent?.classList.add('preview-only');
-            elements.mainContent?.classList.remove('editor-only');
-        } else if (!state.editorCollapsed && state.previewCollapsed) {
-            elements.mainContent?.classList.add('editor-only');
-            elements.mainContent?.classList.remove('preview-only');
-        } else {
-            elements.mainContent?.classList.remove('preview-only', 'editor-only');
+        // 이전에는 접힘 상태로 전체 섹션을 숨기기 위해
+        // `.preview-only` / `.editor-only` 클래스를 사용했습니다.
+        // 사용자가 원하는 동작은 "탭 헤더는 남기고 입력 영역만 숨김" 이므로
+        // 이 로직을 제거하여 `.collapsed` 클래스만으로 입력 영역을 숨기도록 합니다.
+    },
+
+    // 현재 편집기 비율을 계산 (가로 레이아웃 기준)
+    _computeCurrentEditorRatio() {
+        try {
+            const { editorSection, previewSection, mainContent } = this.elements;
+            if (!editorSection || !previewSection || !mainContent) return this.state.editorRatio;
+
+            const rectMain = mainContent.getBoundingClientRect();
+            const rectEditor = editorSection.getBoundingClientRect();
+
+            if (rectMain.width <= 0) return this.state.editorRatio;
+
+            const ratio = Math.round((rectEditor.width / rectMain.width) * 100);
+            return Math.max(5, Math.min(95, ratio));
+        } catch (e) {
+            return this.state.editorRatio;
         }
     },
 
@@ -358,6 +488,7 @@ export const LayoutManager = {
                 editorCollapsed: this.state.editorCollapsed,
                 previewCollapsed: this.state.previewCollapsed,
                 editorRatio: this.state.editorRatio,
+                consoleCollapsed: this.state.consoleCollapsed,
             };
             localStorage.setItem('codecanvas_layout', JSON.stringify(layout));
         } catch (error) {
@@ -378,6 +509,7 @@ export const LayoutManager = {
                     fullscreenEditor: false, // 에디터 전체화면도 항상 false로 시작
                     previewCollapsed: false, // 미리보기는 항상 펼쳐진 상태로 시작
                     editorCollapsed: false, // 에디터도 항상 펼쳐진 상태로 시작
+                    consoleCollapsed: false, // 콘솔도 기본적으로 펼쳐서 시작
                 };
             }
         } catch (error) {
@@ -392,7 +524,9 @@ export const LayoutManager = {
             orientation: 'vertical',
             editorCollapsed: false,
             previewCollapsed: false,
+            consoleCollapsed: false,
             fullscreenPreview: false,
+            fullscreenEditor: false,
             editorRatio: 50,
             sidebarWidth: 280,
         };
@@ -431,11 +565,21 @@ export const LayoutManager = {
         if (elements.btnPreviewCollapse) {
             const iconSpan = elements.btnPreviewCollapse.querySelector('.icon');
             if (iconSpan) {
-                iconSpan.textContent = state.previewCollapsed ? '▼' : '▲';
+                iconSpan.textContent = state.previewCollapsed ? '▶' : '▼';
             }
             elements.btnPreviewCollapse.title = state.previewCollapsed
                 ? '미리보기 펼치기 (Ctrl+P)'
                 : '미리보기 접기 (Ctrl+P)';
+        }
+
+        // 콘솔 접기/펼치기 버튼
+        if (elements.btnConsoleCollapse) {
+            // btnConsoleCollapse is a simple button with text icon, not an inner .icon span.
+            elements.btnConsoleCollapse.title = state.consoleCollapsed
+                ? '콘솔 펼치기'
+                : '콘솔 접기';
+            // 버튼 텍스트/icon flip
+            elements.btnConsoleCollapse.textContent = state.consoleCollapsed ? '▶' : '▼';
         }
 
         // 에디터 전체화면 버튼

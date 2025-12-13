@@ -103,3 +103,43 @@ body.fullscreen-active {
         display: none;
     }
 }
+
+/* 복구 버튼 스타일: 패널이 접혔을 때 화면에 보이도록 고정 위치 */
+#btn-editor-restore,
+#btn-preview-restore,
+#btn-console-restore {
+    position: absolute;
+    top: 72px;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background: var(--panel-bg, #ffffff);
+    border: 1px solid var(--border-color);
+    display: none; /* 기본은 숨김, layout.js에서 표시 제어 */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1200;
+}
+
+#btn-editor-restore {
+    left: 12px;
+}
+
+#btn-preview-restore {
+    right: 12px;
+}
+
+/* 콘솔 자체 접힘 상태에 대한 스타일 */
+.console-container.collapsed {
+    height: 40px;
+}
+
+.console-container.collapsed #console-output {
+    display: none;
+}
+
+#btn-editor-restore .icon,
+#btn-preview-restore .icon {
+    font-size: 18px;
+}
