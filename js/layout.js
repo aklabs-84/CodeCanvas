@@ -236,7 +236,20 @@ export const LayoutManager = {
 
     // 레이아웃 방향 전환 (vertical ↔ horizontal)
     toggleOrientation() {
-        this.state.orientation = this.state.orientation === 'vertical' ? 'horizontal' : 'vertical';
+        const wasHorizontal = this.state.orientation === 'horizontal';
+        this.state.orientation = wasHorizontal ? 'vertical' : 'horizontal';
+
+        // 세로 -> 가로 전환 시, 세로 상태에서 계산된 극단 값(예: 95%)으로
+        // 미리보기가 너무 좁아지는 것을 방지하기 위해 비율을 보정
+        if (!wasHorizontal && this.state.orientation === 'horizontal') {
+            // 기본은 50:50로 시작하되, 과거 값이 있으면 20~80 사이로만 제한
+            const target = this.state.editorRatio || 50;
+            this.state.editorRatio = Math.max(20, Math.min(80, target));
+
+            // 균형 잡힌 기본 레이아웃을 위해 첫 가로 전환 시에는 50:50을 강제
+            this.state.editorRatio = 50;
+        }
+
         this.applyState();
         this.saveToLocalStorage();
     },
@@ -244,7 +257,7 @@ export const LayoutManager = {
     // 에디터 패널 토글
     toggleEditor() {
         // 접기 전에 현재 편집기 비율을 저장
-        if (!this.state.editorCollapsed) {
+        if (!this.state.editorCollapsed && this.state.orientation === 'horizontal') {
             this.state.editorRatio = this._computeCurrentEditorRatio();
         }
 
@@ -263,7 +276,7 @@ export const LayoutManager = {
     // 미리보기 패널 토글
     togglePreview() {
         // 접기 전에 현재 편집기 비율을 저장
-        if (!this.state.previewCollapsed) {
+        if (!this.state.previewCollapsed && this.state.orientation === 'horizontal') {
             this.state.editorRatio = this._computeCurrentEditorRatio();
         }
 
@@ -387,7 +400,7 @@ export const LayoutManager = {
         // 레이아웃 비율 적용 (가로 레이아웃인 경우)
         if (elements.mainContent?.classList.contains('layout-horizontal')) {
             if (!state.editorCollapsed && !state.previewCollapsed) {
-                const editorFlexPercent = Math.max(5, Math.min(95, state.editorRatio));
+                const editorFlexPercent = Math.max(20, Math.min(80, state.editorRatio || 50));
                 if (elements.editorSection) {
                     elements.editorSection.style.flex = `0 0 ${editorFlexPercent}%`;
                 }
@@ -466,13 +479,18 @@ export const LayoutManager = {
             const { editorSection, previewSection, mainContent } = this.elements;
             if (!editorSection || !previewSection || !mainContent) return this.state.editorRatio;
 
+            // 세로 레이아웃에서는 비율 계산이 항상 100%가 되므로 그대로 반환
+            if (this.state.orientation !== 'horizontal' && !mainContent.classList.contains('layout-horizontal')) {
+                return this.state.editorRatio;
+            }
+
             const rectMain = mainContent.getBoundingClientRect();
             const rectEditor = editorSection.getBoundingClientRect();
 
             if (rectMain.width <= 0) return this.state.editorRatio;
 
             const ratio = Math.round((rectEditor.width / rectMain.width) * 100);
-            return Math.max(5, Math.min(95, ratio));
+            return Math.max(20, Math.min(80, ratio));
         } catch (e) {
             return this.state.editorRatio;
         }
@@ -502,6 +520,11 @@ export const LayoutManager = {
             const saved = localStorage.getItem('codecanvas_layout');
             if (saved) {
                 const layout = JSON.parse(saved);
+                // 가로 레이아웃에서 저장된 극단 비율로 인해 미리보기가 좁아지는 것 방지
+                if (layout.orientation === 'horizontal') {
+                    const safeRatio = Math.max(20, Math.min(80, layout.editorRatio ?? 50));
+                    layout.editorRatio = safeRatio;
+                }
                 this.state = {
                     ...this.state,
                     ...layout,
