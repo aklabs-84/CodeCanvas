@@ -22,7 +22,8 @@ export const LayoutManager = {
         previewSection: null,
         previewContainer: null,
         fullscreenOverlay: null,
-        btnSidebarToggle: null,
+        editorResizer: null,
+        btnFileMenu: null,
         btnLayout: null,
         btnEditorCollapse: null,
         btnPreviewCollapse: null,
@@ -43,6 +44,10 @@ export const LayoutManager = {
     init() {
         this.cacheElements();
         this.loadFromLocalStorage();
+        
+        // 파일 탐색기는 모바일 UI처럼 항상 시작 시 기본 숨김 처리 강제 (사용자 경험 고도화)
+        this.state.sidebarCollapsed = true;
+        
         this.applyState();
         this.updateButtonStates();
         this.attachEventListeners();
@@ -57,7 +62,8 @@ export const LayoutManager = {
             editorSection: document.getElementById('editor-section'),
             previewSection: document.getElementById('preview-section'),
             fullscreenOverlay: document.getElementById('fullscreen-overlay'),
-            btnSidebarToggle: document.getElementById('btn-sidebar-toggle'),
+            editorResizer: document.getElementById('editor-resizer'),
+            btnFileMenu: document.getElementById('btn-file-menu'),
             btnLayout: document.getElementById('btn-layout'),
             btnEditorCollapse: document.getElementById('btn-editor-collapse'),
             btnPreviewCollapse: document.getElementById('btn-preview-collapse'),
@@ -79,10 +85,25 @@ export const LayoutManager = {
     // 이벤트 리스너 연결
     attachEventListeners() {
         const { elements } = this;
+        
+        this.setupResizing();
 
-        // 사이드바 토글
-        elements.btnSidebarToggle?.addEventListener('click', () => {
+        // 사이드바 토글 (파일 메뉴 버튼으로 동작)
+        elements.btnFileMenu?.addEventListener('click', (e) => {
+            e.stopPropagation(); // 버튼 클릭 시 외부 닫기 이벤트 방지
             this.toggleSidebar();
+        });
+
+        // 외부 화면 클릭 시 탐색기 닫기
+        document.addEventListener('click', (e) => {
+            if (!this.state.sidebarCollapsed && elements.sidebar) {
+                if (!elements.sidebar.contains(e.target) && !elements.btnFileMenu?.contains(e.target)) {
+                    this.state.sidebarCollapsed = true;
+                    this.applyState();
+                    this.updateButtonStates();
+                    this.saveToLocalStorage();
+                }
+            }
         });
 
         // 레이아웃 전환
@@ -167,6 +188,69 @@ export const LayoutManager = {
                 }
             }
         });
+    },
+
+    // 리사이징 핸들러 설정
+    setupResizing() {
+        if (!this.elements.editorResizer) return;
+        
+        let isDragging = false;
+        
+        const onMouseDown = (e) => {
+            isDragging = true;
+            document.body.classList.add('resizing');
+            if (this.state.orientation === 'vertical') {
+                document.body.classList.add('resizing-vertical');
+            }
+            this.elements.editorResizer.classList.add('dragging');
+            
+            // iframe 내에서 마우스 이벤트를 잃어버리지 않도록 pointer-events none 처리
+            if (this.elements.previewFrame) {
+                this.elements.previewFrame.style.pointerEvents = 'none';
+            }
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const mainRect = this.elements.mainContent.getBoundingClientRect();
+            let newRatio = 50;
+            
+            if (this.state.orientation === 'horizontal') {
+                // 좌우 드래그 (X축 제한)
+                const clientX = Math.max(mainRect.left, Math.min(e.clientX, mainRect.right));
+                const offsetX = clientX - mainRect.left;
+                newRatio = (offsetX / mainRect.width) * 100;
+            } else {
+                // 상하 드래그 (Y축 제한)
+                const clientY = Math.max(mainRect.top, Math.min(e.clientY, mainRect.bottom));
+                const offsetY = clientY - mainRect.top;
+                newRatio = (offsetY / mainRect.height) * 100;
+            }
+            
+            // 비율을 20% ~ 80% 사이로 제한
+            this.state.editorRatio = Math.max(20, Math.min(80, newRatio));
+            this.applyState();
+        };
+        
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            document.body.classList.remove('resizing', 'resizing-vertical');
+            this.elements.editorResizer.classList.remove('dragging');
+            
+            if (this.elements.previewFrame) {
+                this.elements.previewFrame.style.pointerEvents = '';
+            }
+            
+            this.saveToLocalStorage();
+        };
+
+        this.elements.editorResizer.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     },
 
     // 키보드 단축키 설정
@@ -394,7 +478,7 @@ export const LayoutManager = {
 
         // 복구 버튼 표시: 에디터가 접혀있을 때만 보이게 함
         if (elements.btnEditorRestore) {
-            elements.btnEditorRestore.style.display = state.editorCollapsed ? '' : 'none';
+            elements.btnEditorRestore.style.display = state.editorCollapsed ? 'flex' : 'none';
         }
 
         // 레이아웃 비율 적용 (가로 레이아웃인 경우)
@@ -415,9 +499,22 @@ export const LayoutManager = {
                 if (elements.previewSection) elements.previewSection.style.flex = '0 0 auto';
             }
         } else {
-            // 세로 레이아웃: 높이 기반이므로 기본 flex 값으로 복원
-            if (elements.editorSection) elements.editorSection.style.flex = '';
-            if (elements.previewSection) elements.previewSection.style.flex = '';
+            // 세로 레이아웃
+            if (!state.editorCollapsed && !state.previewCollapsed) {
+                const editorFlexPercent = Math.max(20, Math.min(80, state.editorRatio || 50));
+                if (elements.editorSection) {
+                    elements.editorSection.style.flex = `0 0 ${editorFlexPercent}%`;
+                }
+                if (elements.previewSection) {
+                    elements.previewSection.style.flex = `0 0 ${100 - editorFlexPercent}%`;
+                }
+            } else if (state.editorCollapsed && !state.previewCollapsed) {
+                if (elements.previewSection) elements.previewSection.style.flex = '1 1 0%';
+                if (elements.editorSection) elements.editorSection.style.flex = '0 0 auto';
+            } else if (!state.editorCollapsed && state.previewCollapsed) {
+                if (elements.editorSection) elements.editorSection.style.flex = '1 1 0%';
+                if (elements.previewSection) elements.previewSection.style.flex = '0 0 auto';
+            }
         }
 
         // 미리보기 패널 접힘 처리
@@ -431,7 +528,24 @@ export const LayoutManager = {
 
         // 복구 버튼 표시: 미리보기가 접혀있을 때만 보이게 함
         if (elements.btnPreviewRestore) {
-            elements.btnPreviewRestore.style.display = state.previewCollapsed ? '' : 'none';
+            elements.btnPreviewRestore.style.display = state.previewCollapsed ? 'flex' : 'none';
+        }
+
+        // 리사이즈 핸들 표시 제어 (패널 중 하나라도 접히면 숨김)
+        if (elements.editorResizer) {
+            if (state.editorCollapsed || state.previewCollapsed) {
+                elements.editorResizer.style.display = 'none';
+            } else {
+                elements.editorResizer.style.display = '';
+                // 방향에 따라 클래스 변경
+                if (state.orientation === 'horizontal') {
+                    elements.editorResizer.classList.add('horizontal');
+                    elements.editorResizer.classList.remove('vertical');
+                } else {
+                    elements.editorResizer.classList.add('vertical');
+                    elements.editorResizer.classList.remove('horizontal');
+                }
+            }
         }
 
         // 콘솔 영역 접힘 제어: 콘솔은 preview-section 내부에 있으므로
@@ -446,7 +560,7 @@ export const LayoutManager = {
 
         // 콘솔 복구 버튼 표시
         if (elements.btnConsoleRestore) {
-            elements.btnConsoleRestore.style.display = state.consoleCollapsed ? '' : 'none';
+            elements.btnConsoleRestore.style.display = state.consoleCollapsed ? 'flex' : 'none';
         }
 
         // 전체화면 오버레이 (미리보기 전체화면에만 사용)
@@ -519,20 +633,24 @@ export const LayoutManager = {
         try {
             const saved = localStorage.getItem('codecanvas_layout');
             if (saved) {
-                const layout = JSON.parse(saved);
+                const savedState = JSON.parse(saved);
                 // 가로 레이아웃에서 저장된 극단 비율로 인해 미리보기가 좁아지는 것 방지
-                if (layout.orientation === 'horizontal') {
-                    const safeRatio = Math.max(20, Math.min(80, layout.editorRatio ?? 50));
-                    layout.editorRatio = safeRatio;
+                if (savedState.orientation === 'horizontal') {
+                    const safeRatio = Math.max(20, Math.min(80, savedState.editorRatio ?? 50));
+                    savedState.editorRatio = safeRatio;
                 }
+                
+                // 저장된 상태와 기본값 병합
                 this.state = {
-                    ...this.state,
-                    ...layout,
-                    fullscreenPreview: false, // 전체화면은 항상 false로 시작
-                    fullscreenEditor: false, // 에디터 전체화면도 항상 false로 시작
-                    previewCollapsed: false, // 미리보기는 항상 펼쳐진 상태로 시작
-                    editorCollapsed: false, // 에디터도 항상 펼쳐진 상태로 시작
-                    consoleCollapsed: false, // 콘솔도 기본적으로 펼쳐서 시작
+                    sidebarCollapsed: savedState.sidebarCollapsed !== undefined ? savedState.sidebarCollapsed : true, // 기본 숨김
+                    orientation: savedState.orientation || 'horizontal',
+                    editorCollapsed: false,
+                    previewCollapsed: false,
+                    consoleCollapsed: false,
+                    fullscreenPreview: false,
+                    fullscreenEditor: false,
+                    editorRatio: savedState.editorRatio || 50,
+                    sidebarWidth: savedState.sidebarWidth || 280,
                 };
             }
         } catch (error) {
@@ -543,7 +661,7 @@ export const LayoutManager = {
     // 상태 리셋
     reset() {
         this.state = {
-            sidebarCollapsed: false,
+            sidebarCollapsed: true, // 파일 탐색기 기본 숨김
             orientation: 'vertical',
             editorCollapsed: false,
             previewCollapsed: false,
@@ -577,18 +695,25 @@ export const LayoutManager = {
         if (elements.btnEditorCollapse) {
             const iconSpan = elements.btnEditorCollapse.querySelector('.icon');
             if (iconSpan) {
-                iconSpan.textContent = state.editorCollapsed ? '▶' : '▼';
+                iconSpan.textContent = state.editorCollapsed ? '▶' : '◀';
             }
             elements.btnEditorCollapse.title = state.editorCollapsed
                 ? '에디터 펼치기 (Ctrl+E)'
                 : '에디터 접기 (Ctrl+E)';
         }
 
+        // 파일 메뉴 토글 버튼
+        if (elements.btnFileMenu) {
+            elements.btnFileMenu.title = state.sidebarCollapsed 
+                ? '파일 탐색기 열기 (Ctrl+B)' 
+                : '파일 탐색기 닫기 (Ctrl+B)';
+        }
+
         // 미리보기 접기/펼치기 버튼
         if (elements.btnPreviewCollapse) {
             const iconSpan = elements.btnPreviewCollapse.querySelector('.icon');
             if (iconSpan) {
-                iconSpan.textContent = state.previewCollapsed ? '▶' : '▼';
+                iconSpan.textContent = state.previewCollapsed ? '◀' : '▶';
             }
             elements.btnPreviewCollapse.title = state.previewCollapsed
                 ? '미리보기 펼치기 (Ctrl+P)'

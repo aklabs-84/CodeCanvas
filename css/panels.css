@@ -37,11 +37,19 @@
     background-color: var(--border-color);
     cursor: col-resize;
     z-index: 10;
-    transition: background-color var(--transition-fast);
+    transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.resize-handle::after {
+    content: '';
+    position: absolute;
+    top: -5px; bottom: -5px; left: -5px; right: -5px;
+    z-index: 11;
 }
 
 .resize-handle:hover {
     background-color: var(--accent-primary);
+    box-shadow: 0 0 6px var(--accent-primary);
 }
 
 .resize-handle.horizontal {
@@ -57,6 +65,7 @@
 
 .resize-handle.dragging {
     background-color: var(--accent-primary);
+    box-shadow: 0 0 10px var(--accent-primary);
 }
 
 /* 리사이즈 중 전체 선택 방지 */
@@ -104,30 +113,45 @@ body.fullscreen-active {
     }
 }
 
-/* 복구 버튼 스타일: 패널이 접혔을 때 화면에 보이도록 고정 위치 */
-#btn-editor-restore,
-#btn-preview-restore,
+/* 콘솔 전용 복구 버튼 스타일 (플로팅 박스형 유지) */
 #btn-console-restore {
     position: absolute;
-    top: 72px;
     width: 40px;
     height: 40px;
     border-radius: 6px;
     background: var(--panel-bg, #ffffff);
     border: 1px solid var(--border-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     display: none; /* 기본은 숨김, layout.js에서 표시 제어 */
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 1200;
+    transition: all var(--transition-fast);
+    right: 12px;
+    bottom: 20px;
+}
+
+#btn-console-restore:hover {
+    background-color: var(--bg-hover);
+    transform: scale(1.05);
+}
+
+/* 에디터/미리보기 복원 버튼 (상단 위치, 배경 없는 투명 타일) */
+#btn-editor-restore,
+#btn-preview-restore {
+    position: absolute;
+    z-index: 1200;
+    display: none;
+    top: 4px;
 }
 
 #btn-editor-restore {
-    left: 12px;
+    left: 8px;
 }
 
 #btn-preview-restore {
-    right: 12px;
+    right: 8px;
 }
 
 /* 콘솔 자체 접힘 상태에 대한 스타일 */

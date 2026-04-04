@@ -18,6 +18,10 @@
     <!-- 상단 헤더 -->
     <header class="app-header">
         <div class="header-left">
+            <button id="btn-file-menu" class="btn btn-secondary" title="파일 탐색기 (Ctrl+B)">
+                <span class="icon">📁</span>
+                <span class="text">탐색기</span>
+            </button>
             <h1 class="app-logo">🎨 CodeCanvas</h1>
             <input type="text" id="project-title" class="project-title-input" placeholder="프로젝트명" value="새 프로젝트">
         </div>
@@ -57,13 +61,7 @@
     <!-- 메인 컨테이너 -->
     <div class="app-container">
         <!-- 사이드바 -->
-        <aside id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <button id="btn-sidebar-toggle" class="btn-icon" title="사이드바 접기 (Ctrl+B)">
-                    <span class="icon">◀</span>
-                </button>
-            </div>
-
+        <aside id="sidebar" class="sidebar collapsed">
             <div class="sidebar-content">
                 <!-- 파일 탐색기 섹션 -->
                 <section class="sidebar-section">
@@ -122,7 +120,7 @@
                 <span class="icon">▶</span>
             </button>
             <button id="btn-preview-restore" class="btn-icon btn-restore" title="미리보기 펼치기" style="display:none;">
-                <span class="icon">▶</span>
+                <span class="icon">◀</span>
             </button>
             <button id="btn-console-restore" class="btn-icon btn-restore" title="콘솔 펼치기" style="display:none;">
                 <span class="icon">▶</span>
@@ -144,7 +142,7 @@
                             <span class="icon">⛶</span>
                         </button>
                         <button id="btn-editor-collapse" class="btn-icon" title="에디터 접기 (Ctrl+E)">
-                            <span class="icon">▼</span>
+                            <span class="icon">◀</span>
                         </button>
                     </div>
                 </div>
@@ -156,6 +154,9 @@
                 </div>
             </section>
 
+            <!-- 에디터/미리보기 리사이즈 핸들 -->
+            <div id="editor-resizer" class="resize-handle horizontal"></div>
+
             <!-- 미리보기 영역 -->
             <section id="preview-section" class="preview-section">
                 <div class="section-header">
@@ -165,12 +166,12 @@
                             <span class="icon">⛶</span>
                         </button>
                         <button id="btn-preview-collapse" class="btn-icon" title="미리보기 접기 (Ctrl+P)">
-                            <span class="icon">▲</span>
+                            <span class="icon">▶</span>
                         </button>
                     </div>
                 </div>
                 <div class="preview-container">
-                    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups"></iframe>
                 </div>
                 <div class="console-container">
                         <div class="console-header">
@@ -195,7 +196,7 @@
             </button>
         </div>
         <div class="fullscreen-content">
-            <iframe id="fullscreen-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+            <iframe id="fullscreen-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups"></iframe>
         </div>
     </div>
 

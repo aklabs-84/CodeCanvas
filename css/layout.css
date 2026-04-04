@@ -68,21 +68,28 @@
     display: flex;
     height: calc(100vh - var(--header-height));
     overflow: hidden;
+    position: relative;
 }
 
-/* 사이드바 */
+/* 사이드바 (오버레이 드로어) */
 .sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1050;
+    height: 100%;
     width: var(--sidebar-width);
     background-color: var(--bg-secondary);
     border-right: var(--border-width) solid var(--border-color);
     display: flex;
     flex-direction: column;
-    transition: width var(--transition-normal), transform var(--transition-normal);
-    flex-shrink: 0;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.2);
 }
 
 .sidebar.collapsed {
-    width: var(--sidebar-collapsed-width);
+    transform: translateX(-100%);
+    box-shadow: none;
 }
 
 .sidebar.collapsed .sidebar-content {
@@ -91,12 +98,7 @@
 }
 
 .sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: var(--spacing-sm);
-    border-bottom: var(--border-width) solid var(--border-color);
-    min-height: 40px;
+    display: none;
 }
 
 .sidebar-content {
@@ -138,11 +140,14 @@
 }
 
 .editor-section.collapsed {
-    flex: 0;
-    min-height: 40px;
+    flex: 0 0 48px !important;
+    min-width: 48px;
+    background-color: var(--bg-secondary);
+    position: relative;
     overflow: hidden;
 }
 
+.editor-section.collapsed .section-header,
 .editor-section.collapsed .editor-container {
     display: none;
 }
@@ -158,12 +163,16 @@
 }
 
 .preview-section.collapsed {
-    flex: 0;
-    min-height: 40px;
+    flex: 0 0 48px !important;
+    min-width: 48px;
+    background-color: var(--bg-secondary);
+    position: relative;
     overflow: hidden;
 }
 
-.preview-section.collapsed .preview-container {
+.preview-section.collapsed .section-header,
+.preview-section.collapsed .preview-container,
+.preview-section.collapsed .console-container {
     display: none;
 }
 
