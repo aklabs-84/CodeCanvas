@@ -372,7 +372,8 @@ export const ProjectManager = {
                 id: project.id,
                 title: project.title,
                 code: project.code,
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                author: (window.AuthManager && window.AuthManager.user) ? window.AuthManager.user.username : 'Guest'
             };
 
             const response = await fetch(CONFIG.GAS_APP_URL, {

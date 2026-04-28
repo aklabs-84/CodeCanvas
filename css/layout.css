@@ -370,3 +370,54 @@ body.view-mode .btn-edit-mode:hover {
 body:not(.view-mode) .btn-edit-mode {
     display: none;
 }
+
+/* --- Auth Modal Styles --- */
+.auth-modal {
+    max-width: 400px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.auth-toggle {
+    margin-top: 20px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+}
+
+.auth-toggle a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-toggle a:hover {
+    text-decoration: underline;
+}

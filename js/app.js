@@ -62,6 +62,10 @@ async function initApp() {
         DownloadManager.init();
         console.log('✅ Download manager initialized');
 
+        // 9.5. 인증 관리 초기화
+        AuthManager.init();
+        console.log('✅ Auth system initialized');
+
         // 10. 뷰 모드 -> 에디터 모드 전환 버튼
         const btnGoEdit = document.getElementById('btn-go-edit');
         btnGoEdit?.addEventListener('click', (e) => {
@@ -85,6 +89,73 @@ async function initApp() {
                     console.log('✅ Cloud sync successful');
                 }
             }
+        });
+
+        // --- 인증(로그인/회원가입) 모달 로직 ---
+        const loginModal = document.getElementById('login-modal');
+        const btnLogin = document.getElementById('btn-login');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const btnAuthSubmit = document.getElementById('btn-auth-submit');
+        const linkToggleAuth = document.getElementById('link-toggle-auth');
+        const authToggleText = document.getElementById('auth-toggle-text');
+        
+        let isSignupMode = false;
+
+        btnLogin?.addEventListener('click', () => {
+            if (AuthManager.isAuthenticated) return; // 이미 로그인된 상태면 AuthManager.updateUI에서 로그아웃 처리함
+            loginModal.classList.remove('hidden');
+        });
+
+        linkToggleAuth?.addEventListener('click', (e) => {
+            e.preventDefault();
+            isSignupMode = !isSignupMode;
+            authTitle.textContent = isSignupMode ? '회원가입' : '로그인';
+            btnAuthSubmit.textContent = isSignupMode ? '가입하기' : '로그인';
+            authToggleText.innerHTML = isSignupMode 
+                ? '이미 계정이 있으신가요? <a href="#" id="link-toggle-auth">로그인</a>'
+                : '계정이 없으신가요? <a href="#" id="link-toggle-auth">회원가입</a>';
+            
+            // 이벤트 리스너 재연결 (innerHTML 교체 때문)
+            document.getElementById('link-toggle-auth').onclick = (e) => linkToggleAuth.click();
+        });
+
+        authForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value;
+            const password = document.getElementById('auth-password').value;
+
+            btnAuthSubmit.disabled = true;
+            btnAuthSubmit.textContent = isSignupMode ? '가입 중...' : '로그인 중...';
+
+            if (isSignupMode) {
+                const result = await AuthManager.signup(username, password);
+                if (result.status === 'success') {
+                    showSuccessNotification('회원가입 성공! 로그인해 주세요.');
+                    isSignupMode = false;
+                    authTitle.textContent = '로그인';
+                    btnAuthSubmit.textContent = '로그인';
+                } else {
+                    showErrorNotification(result.message);
+                }
+            } else {
+                const result = await AuthManager.login(username, password);
+                if (result.status === 'success') {
+                    showSuccessNotification(`${username}님, 환영합니다!`);
+                    loginModal.classList.add('hidden');
+                } else {
+                    showErrorNotification(result.message);
+                }
+            }
+            btnAuthSubmit.disabled = false;
+            btnAuthSubmit.textContent = isSignupMode ? '가입하기' : '로그인';
+        });
+
+        // 모달 닫기 버튼 공통 처리
+        document.querySelectorAll('.btn-close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.modal').classList.add('hidden');
+            });
         });
 
         // 11. 공유 프로젝트 체크 및 로드

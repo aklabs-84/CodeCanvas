@@ -2,7 +2,7 @@
 
 export const CONFIG = {
     // Google Apps Script 웹 앱 URL (배포 후 여기에 붙여넣으세요)
-    GAS_APP_URL: 'https://script.google.com/macros/s/AKfycbxjn8fOJLtwtQK4JmrGMGtQtTHEjPZVu_TjF7Q5eHeLQHBfuHrQv6_EeL5wcWePjc1k5Q/exec', 
+    GAS_APP_URL: 'https://script.google.com/macros/s/AKfycbziZYbCk75S9ufEZjFsmCDDy_FSjC12ZGaZnV1eoh-OverNjWGqHYx-vfp3_ivAYfQFWw/exec', 
     
     // 개발 모드 여부
     IS_DEV: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
