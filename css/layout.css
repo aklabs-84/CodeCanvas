@@ -312,22 +312,22 @@
     color: var(--info);
 }
 
-/* --- 뷰 모드 (공유 페이지용) --- */
+/* --- Shared View Mode --- */
 body.view-mode .app-header,
 body.view-mode .sidebar,
 body.view-mode .editor-section,
-body.view-mode #editor-resizer,
+body.view-mode .resize-handle,
 body.view-mode .console-container,
-body.view-mode .preview-section .section-header {
+body.view-mode .section-header {
     display: none !important;
 }
 
-body.view-mode .app-container {
-    height: 100vh;
-}
-
 body.view-mode .main-content {
-    height: 100vh;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100vh !important;
+    width: 100vw !important;
+    display: block !important;
 }
 
 body.view-mode .preview-section {
