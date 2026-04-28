@@ -311,3 +311,62 @@
 .console-message.info {
     color: var(--info);
 }
+
+/* --- 뷰 모드 (공유 페이지용) --- */
+body.view-mode .app-header,
+body.view-mode .sidebar,
+body.view-mode .editor-section,
+body.view-mode #editor-resizer,
+body.view-mode .console-container,
+body.view-mode .preview-section .section-header {
+    display: none !important;
+}
+
+body.view-mode .app-container {
+    height: 100vh;
+}
+
+body.view-mode .main-content {
+    height: 100vh;
+}
+
+body.view-mode .preview-section {
+    height: 100vh;
+    min-height: 100vh;
+}
+
+body.view-mode .preview-container {
+    height: 100vh;
+}
+
+/* 편집 모드로 전환하기 위한 작은 플로팅 버튼 (옵션) */
+body.view-mode .btn-edit-mode {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 16px;
+    background-color: rgba(99, 102, 241, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 9999;
+    opacity: 0.8;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.view-mode .btn-edit-mode:hover {
+    opacity: 1;
+    background-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
+}
+
+body:not(.view-mode) .btn-edit-mode {
+    display: none;
+}

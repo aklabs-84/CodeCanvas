@@ -119,6 +119,20 @@ export const SidebarManager = {
             reader.readAsText(file);
         });
     },
+
+    // 사이드바 접기
+    collapse() {
+        if (window.LayoutManager && !window.LayoutManager.state.sidebarCollapsed) {
+            window.LayoutManager.toggleSidebar();
+        }
+    },
+
+    // 사이드바 펼치기
+    expand() {
+        if (window.LayoutManager && window.LayoutManager.state.sidebarCollapsed) {
+            window.LayoutManager.toggleSidebar();
+        }
+    },
 };
 
 // 전역 객체로 등록

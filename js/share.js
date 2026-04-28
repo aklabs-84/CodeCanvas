@@ -1,4 +1,6 @@
-// share.js - 공유 기능 관리 (향후 구현)
+// share.js - 공유 기능 관리
+import { CONFIG } from './config.js';
+import { ProjectManager } from './projects.js';
 
 export const ShareManager = {
     init() {
@@ -31,14 +33,31 @@ export const ShareManager = {
         });
     },
 
-    openShareModal() {
+    async openShareModal() {
         const modal = document.getElementById('share-modal');
-        modal?.classList.remove('hidden');
+        const shareLinkInput = document.getElementById('share-link');
+        const btnCopyLink = document.getElementById('btn-copy-link');
 
-        // TODO: 실제 공유 링크 생성
-        const shareLink = document.getElementById('share-link');
-        if (shareLink) {
-            shareLink.value = 'https://codecanvas.vercel.app/view/demo (구현 예정)';
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+        
+        if (shareLinkInput) {
+            shareLinkInput.value = '생성 중...';
+            if (btnCopyLink) btnCopyLink.disabled = true;
+        }
+
+        // 1. 클라우드에 저장
+        const projectId = await ProjectManager.saveToCloud();
+
+        // 2. 링크 생성
+        if (projectId && shareLinkInput) {
+            const baseUrl = CONFIG.SHARE_BASE_URL;
+            const fullLink = `${baseUrl}?p=${projectId}`;
+            shareLinkInput.value = fullLink;
+            if (btnCopyLink) btnCopyLink.disabled = false;
+        } else if (shareLinkInput) {
+            shareLinkInput.value = '공유 실패 (GAS URL 설정을 확인하세요)';
         }
     },
 

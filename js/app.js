@@ -62,21 +62,56 @@ async function initApp() {
         DownloadManager.init();
         console.log('✅ Download manager initialized');
 
-        // 10. 저장 버튼 이벤트
+        // 10. 뷰 모드 -> 에디터 모드 전환 버튼
+        const btnGoEdit = document.getElementById('btn-go-edit');
+        btnGoEdit?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.body.classList.remove('view-mode');
+            // 에디터와 사이드바 다시 표시
+            if (window.SidebarManager) window.SidebarManager.expand();
+            showSuccessNotification('에디터 모드로 전환되었습니다.');
+        });
+
+        // 11. 저장 버튼 이벤트
         const btnSave = document.getElementById('btn-save');
         btnSave?.addEventListener('click', () => {
             ProjectManager.saveCurrentProject();
         });
 
-        // 11. 초기 프리뷰 렌더링
+        // 11. 공유 프로젝트 체크 및 로드
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedId = urlParams.get('p');
+        if (sharedId) {
+            document.body.classList.add('view-mode');
+            console.log('🔗 Loading shared project in view-only mode:', sharedId);
+            showSuccessNotification('공유된 프로젝트를 불러오는 중...');
+            
+            const sharedProject = await ProjectManager.loadFromCloud(sharedId);
+            if (sharedProject) {
+                ProjectManager.currentProject = sharedProject;
+                ProjectManager.isSharedLoad = true; // 공유 프로젝트임을 표시
+                ProjectManager.loadProjectToEditor();
+                
+                // 공유 모드에서는 사이드바 접기
+                if (window.SidebarManager) {
+                    window.SidebarManager.collapse();
+                }
+                
+                showSuccessNotification('프로젝트를 성공적으로 불러왔습니다!');
+            } else {
+                showErrorNotification('프로젝트를 불러오지 못했습니다. 링크를 확인해주세요.');
+            }
+        }
+
+        // 12. 초기 프리뷰 렌더링
         setTimeout(() => {
             PreviewManager.run();
-        }, 100);
+        }, sharedId ? 1000 : 100);
 
         console.log('✅ CodeCanvas initialized successfully!');
     } catch (error) {
         console.error('❌ Failed to initialize CodeCanvas:', error);
-        showErrorNotification('앱 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+        showErrorNotification('앱 초기화에 실패했습니다. 페이지를 새로고침하거나 설정을 확인해주세요.');
     }
 }
 

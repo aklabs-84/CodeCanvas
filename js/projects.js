@@ -1,10 +1,12 @@
 // projects.js - 프로젝트 CRUD 관리 (확장 버전)
+import { CONFIG } from './config.js';
 
 export const ProjectManager = {
     currentProject: null,
     allProjects: [],
     hasUnsavedChanges: false,
     autoSaveTimeout: null,
+    isSharedLoad: false, // 공유 링크를 통해 로드된 프로젝트인지 여부
 
     init() {
         this.loadAllProjects();
@@ -113,7 +115,7 @@ export const ProjectManager = {
     },
 
     // 현재 프로젝트 저장
-    saveCurrentProject() {
+    saveCurrentProject(silent = false) {
         try {
             if (this.currentProject) {
                 // 에디터에서 현재 코드 가져오기
@@ -127,6 +129,21 @@ export const ProjectManager = {
                 }
 
                 this.currentProject.updatedAt = new Date().toISOString();
+
+                // 만약 공유 링크로 불러온 프로젝트라면, 저장 시 새로운 ID를 부여하여 '포크(복제)' 처리
+                if (this.isSharedLoad) {
+                    const oldId = this.currentProject.id;
+                    this.currentProject.id = this.generateId();
+                    this.currentProject.title = (this.currentProject.title || '새 프로젝트') + ' (복사본)';
+                    this.isSharedLoad = false; // 이제 내 프로젝트가 됨
+                    
+                    console.log(`Project forked: ${oldId} -> ${this.currentProject.id}`);
+                    
+                    // URL 파라미터 제거 (선택 사항: 새로고침 시 원본으로 돌아가지 않도록)
+                    if (window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
 
                 // 현재 프로젝트 저장
                 localStorage.setItem('codecanvas_current_project', JSON.stringify(this.currentProject));
@@ -145,7 +162,7 @@ export const ProjectManager = {
                 this.hasUnsavedChanges = false;
                 this.updateSaveStatus('saved');
 
-                if (window.showSuccessNotification) {
+                if (window.showSuccessNotification && !silent) {
                     window.showSuccessNotification('프로젝트가 저장되었습니다.');
                 }
             }
@@ -326,6 +343,82 @@ export const ProjectManager = {
     // ID 생성
     generateId() {
         return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
+    // --- 클라우드 연동 기능 (Google Sheets / GAS) ---
+
+    // 프로젝트를 클라우드에 저장
+    async saveToCloud(project = this.currentProject) {
+        if (!project) return null;
+        if (!CONFIG.GAS_APP_URL) {
+            console.warn('GAS_APP_URL이 설정되지 않았습니다. config.js를 확인하세요.');
+            return null;
+        }
+
+        try {
+            // 저장 전 현재 UI 상태(제목, 코드)를 프로젝트 객체에 반영
+            this.saveCurrentProject(true);
+            
+            // 최신화된 데이터로 다시 할당 (인자가 없을 경우 this.currentProject 사용)
+            if (project === this.currentProject) {
+                project = this.currentProject;
+            }
+
+            this.updateSaveStatus('saving');
+            
+            // 저장할 데이터 준비
+            const payload = {
+                action: 'save',
+                id: project.id,
+                title: project.title,
+                code: project.code,
+                updatedAt: new Date().toISOString()
+            };
+
+            const response = await fetch(CONFIG.GAS_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors', // GAS의 특성상 no-cors를 사용하거나, API에서 적절한 헤더를 반환해야 함
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주하거나, 
+            // 실제 배포 시에는 redirect: 'follow'와 적절한 헤더 설정을 권장함
+            
+            console.log('Project sync request sent to cloud');
+            this.updateSaveStatus('saved');
+            return project.id;
+        } catch (error) {
+            console.error('Failed to sync to cloud:', error);
+            this.updateSaveStatus('error');
+            return null;
+        }
+    },
+
+    // 클라우드에서 프로젝트 로드
+    async loadFromCloud(projectId) {
+        if (!CONFIG.GAS_APP_URL) return null;
+
+        try {
+            const url = `${CONFIG.GAS_APP_URL}?action=get&id=${projectId}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            if (data && data.status === 'success') {
+                return data.project;
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to load from cloud:', error);
+            return null;
+        }
     },
 };
 
