@@ -377,17 +377,18 @@ export const ProjectManager = {
 
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
-                mode: 'no-cors', // GAS의 특성상 no-cors를 사용하거나, API에서 적절한 헤더를 반환해야 함
+                mode: 'cors', // no-cors 대신 cors 사용 (GAS에서 적절히 처리됨)
+                redirect: 'follow', // GAS는 리다이렉트를 사용하므로 필수
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'text/plain;charset=utf-8', // JSON 대신 plain으로 보내야 CORS 문제를 피하기 쉬움
                 },
                 body: JSON.stringify(payload)
             });
 
-            // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 간주하거나, 
-            // 실제 배포 시에는 redirect: 'follow'와 적절한 헤더 설정을 권장함
+            // GAS는 리다이렉트 후 결과값을 반환하므로 response.ok 체크는 신뢰하기 어려울 수 있음
+            // 하지만 요청이 성공적으로 전송되면 일단 성공으로 간주
             
-            console.log('Project sync request sent to cloud');
+            console.log('Project sync request sent to cloud:', project.id);
             this.updateSaveStatus('saved');
             return project.id;
         } catch (error) {

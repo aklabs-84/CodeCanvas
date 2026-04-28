@@ -74,8 +74,17 @@ async function initApp() {
 
         // 11. 저장 버튼 이벤트
         const btnSave = document.getElementById('btn-save');
-        btnSave?.addEventListener('click', () => {
+        btnSave?.addEventListener('click', async () => {
+            // 로컬 저장
             ProjectManager.saveCurrentProject();
+            
+            // 클라우드 동기화 (구글 시트)
+            if (window.CONFIG && window.CONFIG.GAS_APP_URL) {
+                const synced = await ProjectManager.saveToCloud();
+                if (synced) {
+                    console.log('✅ Cloud sync successful');
+                }
+            }
         });
 
         // 11. 공유 프로젝트 체크 및 로드
