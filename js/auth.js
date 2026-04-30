@@ -24,20 +24,12 @@ export const AuthManager = {
                 localStorage.removeItem(SESSION_KEY);
                 return;
             }
-            this.user = session.user;
+            // 신규 형식 { user, expiresAt } 또는 구버전 형식 { username, ... } 모두 지원
+            this.user = session.user || session;
             this.isAuthenticated = true;
         } catch {
             localStorage.removeItem(SESSION_KEY);
         }
-    },
-
-    // 비밀번호를 SHA-256으로 해싱 (서버 전송 전 처리)
-    async hashPassword(password) {
-        const encoded = new TextEncoder().encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
-        return Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
     },
 
     saveSession(user) {
@@ -56,13 +48,12 @@ export const AuthManager = {
         if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
 
         try {
-            const hashedPassword = await this.hashPassword(password);
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
                 mode: 'cors',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'login', username, password: hashedPassword })
+                body: JSON.stringify({ action: 'login', username, password })
             });
 
             const data = await response.json();
@@ -85,13 +76,12 @@ export const AuthManager = {
         if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
 
         try {
-            const hashedPassword = await this.hashPassword(password);
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
                 mode: 'cors',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'signup', username, password: hashedPassword })
+                body: JSON.stringify({ action: 'signup', username, password })
             });
 
             const data = await response.json();
