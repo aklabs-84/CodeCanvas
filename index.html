@@ -171,7 +171,7 @@
                     </div>
                 </div>
                 <div class="preview-container">
-                    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups"></iframe>
+                    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-modals" allow="geolocation; camera; microphone; clipboard-write"></iframe>
                 </div>
                 <div class="console-container">
                         <div class="console-header">
@@ -196,7 +196,7 @@
             </button>
         </div>
         <div class="fullscreen-content">
-            <iframe id="fullscreen-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups"></iframe>
+            <iframe id="fullscreen-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-modals" allow="geolocation; camera; microphone; clipboard-write"></iframe>
         </div>
     </div>
 
@@ -242,9 +242,9 @@
     </div>
 
 
-    <!-- Ace Editor CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ext-language_tools.js"></script>
+    <!-- Monaco Editor CDN (VS Code 동일 엔진) -->
+    <script>var require = { paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 
     <!-- JSZip CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>

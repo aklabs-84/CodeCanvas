@@ -46,6 +46,18 @@ export const ProjectManager = {
         projectTitle?.addEventListener('input', () => {
             this.triggerAutoSave();
         });
+
+        // 프로젝트 검색
+        const searchInput = document.getElementById('project-search');
+        searchInput?.addEventListener('input', () => {
+            this.renderProjectList();
+        });
+
+        // 프로젝트 정렬
+        const sortSelect = document.getElementById('project-sort');
+        sortSelect?.addEventListener('change', () => {
+            this.renderProjectList();
+        });
     },
 
     // 현재 프로젝트 로드
@@ -214,25 +226,36 @@ export const ProjectManager = {
     // 프로젝트 목록 렌더링
     renderProjectList() {
         const projectList = document.getElementById('project-list');
-        if (!projectList) {
+        if (!projectList) return;
+
+        // 기존 항목 제거 (새 프로젝트 버튼은 유지)
+        projectList.querySelectorAll('.project-item').forEach(item => item.remove());
+
+        // 검색어 필터
+        const searchQuery = (document.getElementById('project-search')?.value || '').toLowerCase().trim();
+        let filtered = searchQuery
+            ? this.allProjects.filter(p => (p.title || '').toLowerCase().includes(searchQuery))
+            : [...this.allProjects];
+
+        // 정렬
+        const sortKey = document.getElementById('project-sort')?.value || 'modified';
+        filtered.sort((a, b) => {
+            if (sortKey === 'name') return (a.title || '').localeCompare(b.title || '', 'ko');
+            if (sortKey === 'created') return new Date(b.createdAt) - new Date(a.createdAt);
+            return new Date(b.updatedAt) - new Date(a.updatedAt); // modified (기본)
+        });
+
+        if (filtered.length === 0) {
+            if (searchQuery) {
+                const empty = document.createElement('div');
+                empty.className = 'project-empty';
+                empty.textContent = '검색 결과가 없습니다.';
+                projectList.appendChild(empty);
+            }
             return;
         }
 
-        // 새 프로젝트 버튼 제외한 기존 항목 제거
-        const existingProjects = projectList.querySelectorAll('.project-item');
-        existingProjects.forEach(item => item.remove());
-
-        // 정렬 (최근 수정일순)
-        const sortedProjects = [...this.allProjects].sort((a, b) =>
-            new Date(b.updatedAt) - new Date(a.updatedAt)
-        );
-
-        if (sortedProjects.length === 0) {
-            return;
-        }
-
-        // 프로젝트 항목들을 추가 (최신순)
-        sortedProjects.forEach(project => {
+        filtered.forEach(project => {
             const item = this.createProjectListItem(project);
             projectList.appendChild(item);
         });
@@ -315,7 +338,7 @@ export const ProjectManager = {
 
         this.autoSaveTimeout = setTimeout(() => {
             this.saveCurrentProject();
-        }, 30000);
+        }, 2000);
     },
 
     // 저장 상태 업데이트
@@ -342,7 +365,7 @@ export const ProjectManager = {
 
     // ID 생성
     generateId() {
-        return 'proj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'proj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     },
 
     // --- 클라우드 연동 기능 (Google Sheets / GAS) ---

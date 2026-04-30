@@ -1,4 +1,6 @@
-// editor-ace.js - Ace Editor 초기화 및 관리
+// editor.js - Monaco Editor (VS Code 엔진) 초기화 및 관리
+
+const MONACO_BASE = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs';
 
 export const EditorManager = {
     editors: {
@@ -8,7 +10,7 @@ export const EditorManager = {
         unified: null,
     },
 
-    currentMode: 'html', // 'html' | 'css' | 'js' | 'unified'
+    currentMode: 'html',
 
     code: {
         html: `<!DOCTYPE html>
@@ -34,136 +36,148 @@ h1 {
         js: 'console.log("Hello, CodeCanvas!");',
     },
 
-    // 초기화
     async init() {
-        // Ace가 로드될 때까지 대기
-        await this.waitForAce();
-        this.initializeEditors();
-        this.attachEventListeners();
+        this._setupWorkers();
+        await this._loadMonaco();
+        this._initializeEditors();
+        this._attachEventListeners();
     },
 
-    // Ace 로드 대기
-    waitForAce() {
-        return new Promise((resolve) => {
-            if (typeof ace !== 'undefined') {
-                resolve();
-            } else {
-                const checkAce = setInterval(() => {
-                    if (typeof ace !== 'undefined') {
-                        clearInterval(checkAce);
-                        resolve();
-                    }
-                }, 100);
+    // 언어 서비스 워커 설정 (IntelliSense 활성화 핵심)
+    _setupWorkers() {
+        window.MonacoEnvironment = {
+            getWorkerUrl(moduleId, label) {
+                const workerMap = {
+                    css:        `${MONACO_BASE}/language/css/css.worker.js`,
+                    scss:       `${MONACO_BASE}/language/css/css.worker.js`,
+                    less:       `${MONACO_BASE}/language/css/css.worker.js`,
+                    html:       `${MONACO_BASE}/language/html/html.worker.js`,
+                    handlebars: `${MONACO_BASE}/language/html/html.worker.js`,
+                    razor:      `${MONACO_BASE}/language/html/html.worker.js`,
+                    typescript: `${MONACO_BASE}/language/typescript/ts.worker.js`,
+                    javascript: `${MONACO_BASE}/language/typescript/ts.worker.js`,
+                };
+                const workerScript = workerMap[label] || `${MONACO_BASE}/editor/editor.worker.js`;
+                // data URI 방식: CDN cross-origin worker 제한 우회
+                return `data:text/javascript;charset=utf-8,${encodeURIComponent(
+                    `self.MonacoEnvironment={baseUrl:'${MONACO_BASE}/'};importScripts('${workerScript}');`
+                )}`;
             }
+        };
+    },
+
+    // Monaco 로더 대기
+    _loadMonaco() {
+        return new Promise((resolve) => {
+            if (typeof monaco !== 'undefined') { resolve(); return; }
+            require(['vs/editor/editor.main'], resolve);
         });
     },
 
-    // 에디터 초기화
-    initializeEditors() {
-        const editorPanes = {
-            html: document.getElementById('editor-html'),
-            css: document.getElementById('editor-css'),
-            js: document.getElementById('editor-js'),
-            unified: document.getElementById('editor-unified'),
+    // 에디터 인스턴스 생성
+    _initializeEditors() {
+        const isDark = document.body.classList.contains('theme-dark');
+
+        const commonOptions = {
+            theme: isDark ? 'vs-dark' : 'vs',
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace",
+            fontLigatures: true,
+            automaticLayout: true,       // 컨테이너 크기 변경 시 자동 재조정
+            minimap: { enabled: true },
+            wordWrap: 'on',
+            tabSize: 4,
+            insertSpaces: true,
+            folding: true,
+            foldingHighlight: true,
+            lineNumbers: 'on',
+            renderLineHighlight: 'all',
+            scrollBeyondLastLine: false,
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            cursorSmoothCaretAnimation: 'on',
+            formatOnPaste: true,
+            formatOnType: true,
+            quickSuggestions: { other: true, comments: false, strings: true },
+            suggestOnTriggerCharacters: true,
+            acceptSuggestionOnCommitCharacter: true,
+            snippetSuggestions: 'inline',
+            bracketPairColorization: { enabled: true },
+            guides: { bracketPairs: true, indentation: true },
+            padding: { top: 8, bottom: 8 },
+            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+            renderWhitespace: 'selection',
+            links: true,
+            colorDecorators: true,       // CSS color 미리보기
         };
 
-        // Ace 설정
-        ace.config.set('basePath', 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/');
+        const configs = [
+            { key: 'html',    language: 'html',       value: this.code.html,          containerId: 'editor-html' },
+            { key: 'css',     language: 'css',        value: this.code.css,           containerId: 'editor-css' },
+            { key: 'js',      language: 'javascript', value: this.code.js,            containerId: 'editor-js' },
+            { key: 'unified', language: 'html',       value: this._getUnifiedCode(),  containerId: 'editor-unified' },
+        ];
 
-        // 각 에디터 패널에 Ace Editor 생성
-        Object.keys(editorPanes).forEach(mode => {
-            const pane = editorPanes[mode];
-            if (pane && !this.editors[mode]) {
-                // Ace 에디터 생성
-                const editor = ace.edit(pane.id);
+        configs.forEach(({ key, language, value, containerId }) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
 
-                // 기본 설정
-                editor.setTheme('ace/theme/monokai');
-                editor.setOptions({
-                    fontSize: '14px',
-                    showPrintMargin: false,
-                    enableBasicAutocompletion: true,
-                    enableLiveAutocompletion: true,
-                    enableSnippets: true,
-                    tabSize: 4,
-                    useSoftTabs: true,
-                });
+            const editor = monaco.editor.create(container, {
+                ...commonOptions,
+                language,
+                value,
+            });
 
-                // 모드별 언어 설정
-                if (mode === 'html') {
-                    editor.session.setMode('ace/mode/html');
-                    editor.setValue(this.code.html, -1);
-                } else if (mode === 'css') {
-                    editor.session.setMode('ace/mode/css');
-                    editor.setValue(this.code.css, -1);
-                } else if (mode === 'js') {
-                    editor.session.setMode('ace/mode/javascript');
-                    editor.setValue(this.code.js, -1);
-                } else if (mode === 'unified') {
-                    editor.session.setMode('ace/mode/html');
-                    editor.setValue(this.getUnifiedCode(), -1);
-                }
+            editor.onDidChangeModelContent(() => {
+                this._handleCodeChange(key, editor.getValue());
+            });
 
-                // 변경 이벤트
-                editor.session.on('change', () => {
-                    this.handleCodeChange(mode, editor.getValue());
-                });
-
-                this.editors[mode] = editor;
-            }
+            this.editors[key] = editor;
         });
 
-        this.switchMode(this.currentMode);
-        this.applyTheme();
+        // HTML 에디터에 Emmet 활성화
+        monaco.languages.html?.registerCompletionItemProvider?.('html', {
+            triggerCharacters: ['>'],
+        });
+
+        this._switchMode(this.currentMode);
     },
 
-    // 코드 변경 핸들러
-    handleCodeChange(mode, value) {
+    _handleCodeChange(mode, value) {
         if (mode === 'unified') {
-            // 통합 모드에서는 HTML, CSS, JS를 파싱해서 분리
-            this.parseUnifiedCode(value);
+            this._parseUnifiedCode(value);
         } else {
             this.code[mode] = value;
         }
 
-        // 자동 저장 트리거
         if (window.ProjectManager) {
             window.ProjectManager.triggerAutoSave();
         }
     },
 
-    // 모드 전환
-    switchMode(mode) {
+    _switchMode(mode) {
         this.currentMode = mode;
 
-        // 모든 에디터 패널 숨기기
-        document.querySelectorAll('.editor-pane').forEach(pane => {
-            pane.classList.remove('active');
-        });
+        document.querySelectorAll('.editor-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById(`editor-${mode}`)?.classList.add('active');
 
-        // 선택된 에디터 패널 표시
-        const activePane = document.getElementById(`editor-${mode}`);
-        activePane?.classList.add('active');
-
-        // 탭 버튼 활성화
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelector(`.tab-btn[data-mode="${mode}"]`)?.classList.add('active');
 
-        // 통합 모드로 전환시 코드 동기화
-        if (mode === 'unified' && this.editors.unified) {
-            this.editors.unified.setValue(this.getUnifiedCode(), -1);
+        if (mode === 'unified') {
+            this._setValue(this.editors.unified, this._getUnifiedCode());
         }
 
-        // 에디터 크기 조정
-        if (this.editors[mode]) {
-            this.editors[mode].resize();
-        }
+        // 탭 전환 후 에디터 레이아웃 즉시 갱신
+        this.editors[mode]?.layout();
     },
 
-    // 통합 코드 가져오기
-    getUnifiedCode() {
+    _getUnifiedCode() {
+        const bodyOnly = this.code.html
+            .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/gi, '')
+            .replace(/<\/body>[\s\S]*<\/html>/gi, '')
+            .trim();
+
         return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -175,93 +189,83 @@ ${this.code.css}
     </style>
 </head>
 <body>
-${this.code.html.replace(/<!DOCTYPE html>[\s\S]*?<body>/gi, '').replace(/<\/body>[\s\S]*<\/html>/gi, '')}
+${bodyOnly}
     <script>
 ${this.code.js}
-    </script>
+    <\/script>
 </body>
 </html>`;
     },
 
-    // 통합 코드 파싱
-    parseUnifiedCode(unified) {
-        // CSS 추출
-        const cssMatch = unified.match(/<style>([\s\S]*?)<\/style>/i);
-        if (cssMatch) {
-            this.code.css = cssMatch[1].trim();
-        }
+    _parseUnifiedCode(unified) {
+        const cssMatch = unified.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        if (cssMatch) this.code.css = cssMatch[1].trim();
 
-        // JS 추출
-        const jsMatch = unified.match(/<script>([\s\S]*?)<\/script>/i);
-        if (jsMatch) {
-            this.code.js = jsMatch[1].trim();
-        }
+        const jsMatch = unified.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+        if (jsMatch) this.code.js = jsMatch[1].trim();
 
-        // HTML 추출 (body 내용만)
-        const bodyMatch = unified.match(/<body>([\s\S]*?)<\/body>/i);
+        const bodyMatch = unified.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-            let bodyContent = bodyMatch[1];
-            // script 태그 제거
-            bodyContent = bodyContent.replace(/<script>[\s\S]*?<\/script>/gi, '').trim();
-            this.code.html = bodyContent;
+            this.code.html = bodyMatch[1]
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .trim();
         }
 
-        // 분리 모드 에디터들도 업데이트
-        if (this.editors.html) this.editors.html.setValue(this.code.html, -1);
-        if (this.editors.css) this.editors.css.setValue(this.code.css, -1);
-        if (this.editors.js) this.editors.js.setValue(this.code.js, -1);
+        // 분리 에디터에 반영 (값이 실제로 다를 때만 → 불필요한 이벤트 방지)
+        this._setValue(this.editors.html, this.code.html);
+        this._setValue(this.editors.css,  this.code.css);
+        this._setValue(this.editors.js,   this.code.js);
     },
 
-    // 코드 가져오기
+    // 현재 값과 다를 때만 setValue (무한 change 루프 방지)
+    _setValue(editor, value) {
+        if (!editor) return;
+        const model = editor.getModel();
+        if (model && model.getValue() !== value) {
+            model.setValue(value);
+        }
+    },
+
+    // ── 공개 API (다른 모듈에서 사용) ────────────────────────────
+
     getCode() {
         return {
             html: this.code.html,
-            css: this.code.css,
-            js: this.code.js,
+            css:  this.code.css,
+            js:   this.code.js,
         };
     },
 
-    // 코드 설정
     setCode({ html, css, js }) {
         this.code.html = html || '';
-        this.code.css = css || '';
-        this.code.js = js || '';
+        this.code.css  = css  || '';
+        this.code.js   = js   || '';
 
-        // 에디터 업데이트
-        if (this.editors.html) this.editors.html.setValue(this.code.html, -1);
-        if (this.editors.css) this.editors.css.setValue(this.code.css, -1);
-        if (this.editors.js) this.editors.js.setValue(this.code.js, -1);
-        if (this.editors.unified) this.editors.unified.setValue(this.getUnifiedCode(), -1);
+        this._setValue(this.editors.html,    this.code.html);
+        this._setValue(this.editors.css,     this.code.css);
+        this._setValue(this.editors.js,      this.code.js);
+        this._setValue(this.editors.unified, this._getUnifiedCode());
     },
 
-    // 테마 적용
     applyTheme() {
+        if (typeof monaco === 'undefined') return;
         const isDark = document.body.classList.contains('theme-dark');
-        const theme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
-
-        Object.values(this.editors).forEach(editor => {
-            if (editor) {
-                editor.setTheme(theme);
-            }
-        });
+        monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
     },
 
-    // 이벤트 리스너
-    attachEventListeners() {
-        // 탭 버튼
+    // layout.js에서 패널 크기 변경 시 호출
+    resize() {
+        Object.values(this.editors).forEach(e => e?.layout());
+    },
+
+    _attachEventListeners() {
+        // 탭 전환
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-                this.switchMode(mode);
-            });
+            btn.addEventListener('click', () => this._switchMode(btn.dataset.mode));
         });
 
-        // 테마 변경 감지
-        const observer = new MutationObserver(() => {
-            this.applyTheme();
-        });
-
-        observer.observe(document.body, {
+        // 테마 변경 감지 (body class 변화)
+        new MutationObserver(() => this.applyTheme()).observe(document.body, {
             attributes: true,
             attributeFilter: ['class'],
         });

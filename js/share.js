@@ -10,7 +10,6 @@ export const ShareManager = {
 
     attachEventListeners() {
         const btnShare = document.getElementById('btn-share');
-        const btnCloseModal = document.querySelector('.btn-close-modal');
         const btnCopyLink = document.getElementById('btn-copy-link');
         const modal = document.getElementById('share-modal');
 
@@ -18,7 +17,8 @@ export const ShareManager = {
             this.openShareModal();
         });
 
-        btnCloseModal?.addEventListener('click', () => {
+        // 공유 모달 내 닫기 버튼만 정확히 선택 (app.js의 공통 처리와 중복 방지)
+        modal?.querySelector('.btn-close-modal')?.addEventListener('click', () => {
             this.closeShareModal();
         });
 

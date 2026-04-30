@@ -62,10 +62,6 @@ async function initApp() {
         DownloadManager.init();
         console.log('✅ Download manager initialized');
 
-        // 9.5. 인증 관리 초기화
-        AuthManager.init();
-        console.log('✅ Auth system initialized');
-
         // 10. 뷰 모드 -> 에디터 모드 전환 버튼
         const btnGoEdit = document.getElementById('btn-go-edit');
         btnGoEdit?.addEventListener('click', (e) => {

@@ -237,14 +237,17 @@ export const LayoutManager = {
         const onMouseUp = (e) => {
             if (!isDragging) return;
             isDragging = false;
-            
+
             document.body.classList.remove('resizing', 'resizing-vertical');
             this.elements.editorResizer.classList.remove('dragging');
-            
+
             if (this.elements.previewFrame) {
                 this.elements.previewFrame.style.pointerEvents = '';
             }
-            
+
+            // 리사이즈 완료 후 Monaco 에디터 레이아웃 갱신
+            if (window.EditorManager) window.EditorManager.resize();
+
             this.saveToLocalStorage();
         };
 
@@ -677,12 +680,13 @@ export const LayoutManager = {
 
     // 미리보기 내용 업데이트
     updatePreview(html) {
+        // 메인 프레임 업데이트
         if (this.elements.previewFrame) {
             this.elements.previewFrame.srcdoc = html;
         }
 
-        // 전체화면이 열려있으면 전체화면도 업데이트
-        if (this.state.fullscreenPreview && this.elements.fullscreenFrame) {
+        // 전체화면이 열려있으면 전체화면 프레임도 업데이트
+        if (this.elements.fullscreenFrame) {
             this.elements.fullscreenFrame.srcdoc = html;
         }
     },

@@ -1,5 +1,8 @@
 import { CONFIG } from './config.js';
 
+const SESSION_KEY = 'codecanvas_user';
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7일
+
 export const AuthManager = {
     isAuthenticated: false,
     user: null,
@@ -12,11 +15,37 @@ export const AuthManager = {
     },
 
     checkSession() {
-        const savedUser = localStorage.getItem('codecanvas_user');
-        if (savedUser) {
-            this.user = JSON.parse(savedUser);
+        try {
+            const saved = localStorage.getItem(SESSION_KEY);
+            if (!saved) return;
+            const session = JSON.parse(saved);
+            // 만료 확인
+            if (session.expiresAt && Date.now() > session.expiresAt) {
+                localStorage.removeItem(SESSION_KEY);
+                return;
+            }
+            this.user = session.user;
             this.isAuthenticated = true;
+        } catch {
+            localStorage.removeItem(SESSION_KEY);
         }
+    },
+
+    // 비밀번호를 SHA-256으로 해싱 (서버 전송 전 처리)
+    async hashPassword(password) {
+        const encoded = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+        return Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    },
+
+    saveSession(user) {
+        const session = {
+            user,
+            expiresAt: Date.now() + SESSION_TTL,
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     },
 
     attachEventListeners() {
@@ -27,19 +56,20 @@ export const AuthManager = {
         if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
 
         try {
+            const hashedPassword = await this.hashPassword(password);
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
                 mode: 'cors',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'login', username, password })
+                body: JSON.stringify({ action: 'login', username, password: hashedPassword })
             });
 
             const data = await response.json();
             if (data.status === 'success') {
                 this.user = data.user;
                 this.isAuthenticated = true;
-                localStorage.setItem('codecanvas_user', JSON.stringify(this.user));
+                this.saveSession(this.user);
                 this.updateUI();
                 return { status: 'success' };
             } else {
@@ -55,12 +85,13 @@ export const AuthManager = {
         if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
 
         try {
+            const hashedPassword = await this.hashPassword(password);
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
                 mode: 'cors',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'signup', username, password })
+                body: JSON.stringify({ action: 'signup', username, password: hashedPassword })
             });
 
             const data = await response.json();
@@ -78,9 +109,9 @@ export const AuthManager = {
     logout() {
         this.isAuthenticated = false;
         this.user = null;
-        localStorage.removeItem('codecanvas_user');
+        localStorage.removeItem(SESSION_KEY);
         this.updateUI();
-        window.location.reload(); // 세션 초기화를 위해 페이지 새로고침
+        window.location.reload();
     },
 
     updateUI() {
