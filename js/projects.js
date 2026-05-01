@@ -401,10 +401,10 @@ export const ProjectManager = {
 
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
-                mode: 'cors', // no-cors 대신 cors 사용 (GAS에서 적절히 처리됨)
-                redirect: 'follow', // GAS는 리다이렉트를 사용하므로 필수
+                mode: 'no-cors', // GAS의 302 리다이렉트 시 발생하는 CORS 에러를 방지하기 위해 no-cors 사용
+                redirect: 'follow',
                 headers: {
-                    'Content-Type': 'text/plain;charset=utf-8', // JSON 대신 plain으로 보내야 CORS 문제를 피하기 쉬움
+                    'Content-Type': 'text/plain;charset=utf-8',
                 },
                 body: JSON.stringify(payload)
             });
