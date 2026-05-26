@@ -197,6 +197,7 @@ export const LayoutManager = {
         let isDragging = false;
         
         const onMouseDown = (e) => {
+            e.preventDefault(); // 브라우저의 기본 텍스트 선택 및 네이티브 드래그앤드롭 작동 방지 (드래그 끊김 해결 필수)
             isDragging = true;
             document.body.classList.add('resizing');
             if (this.state.orientation === 'vertical') {
