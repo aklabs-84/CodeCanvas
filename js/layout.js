@@ -492,7 +492,7 @@ export const LayoutManager = {
                     elements.editorSection.style.flex = `0 0 ${editorFlexPercent}%`;
                 }
                 if (elements.previewSection) {
-                    elements.previewSection.style.flex = `0 0 ${100 - editorFlexPercent}%`;
+                    elements.previewSection.style.flex = '1 1 0%';
                 }
             } else if (state.editorCollapsed && !state.previewCollapsed) {
                 if (elements.previewSection) elements.previewSection.style.flex = '1 1 0%';
@@ -509,7 +509,7 @@ export const LayoutManager = {
                     elements.editorSection.style.flex = `0 0 ${editorFlexPercent}%`;
                 }
                 if (elements.previewSection) {
-                    elements.previewSection.style.flex = `0 0 ${100 - editorFlexPercent}%`;
+                    elements.previewSection.style.flex = '1 1 0%';
                 }
             } else if (state.editorCollapsed && !state.previewCollapsed) {
                 if (elements.previewSection) elements.previewSection.style.flex = '1 1 0%';

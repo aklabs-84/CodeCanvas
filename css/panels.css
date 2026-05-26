@@ -79,6 +79,14 @@ body.resizing-vertical {
     cursor: row-resize;
 }
 
+/* 드래그 중에는 실시간 크기 반영을 위해 transition을 일시 비활성화 */
+body.resizing .editor-section,
+body.resizing .preview-section,
+body.resizing-vertical .editor-section,
+body.resizing-vertical .preview-section {
+    transition: none !important;
+}
+
 /* 레이아웃별 특수 스타일 */
 
 /* 에디터만 보기 */
