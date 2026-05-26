@@ -87,6 +87,14 @@ body.resizing-vertical .preview-section {
     transition: none !important;
 }
 
+/* 드래그 중 에디터의 이벤트 삼킴 현상 원천 차단 (왼쪽 드래그 먹통 해결) */
+body.resizing .editor-container,
+body.resizing .editor-pane,
+body.resizing-vertical .editor-container,
+body.resizing-vertical .editor-pane {
+    pointer-events: none !important;
+}
+
 /* 레이아웃별 특수 스타일 */
 
 /* 에디터만 보기 */
