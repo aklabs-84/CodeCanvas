@@ -79,6 +79,7 @@ export const LayoutManager = {
             previewContainer: document.querySelector('.preview-container'),
             previewFrame: document.getElementById('preview-frame'),
             fullscreenFrame: document.getElementById('fullscreen-frame'),
+            dragOverlay: document.getElementById('drag-overlay'),
         };
     },
 
@@ -193,49 +194,57 @@ export const LayoutManager = {
     // 리사이징 핸들러 설정
     setupResizing() {
         if (!this.elements.editorResizer) return;
-        
+
         let isDragging = false;
-        
-        const onMouseDown = (e) => {
-            e.preventDefault(); // 브라우저의 기본 텍스트 선택 및 네이티브 드래그앤드롭 작동 방지 (드래그 끊김 해결 필수)
+
+        // 마우스/터치 이벤트에서 공통으로 좌표 추출
+        const getClientPos = (e) => {
+            const touch = e.touches?.[0] ?? e.changedTouches?.[0];
+            return touch
+                ? { clientX: touch.clientX, clientY: touch.clientY }
+                : { clientX: e.clientX, clientY: e.clientY };
+        };
+
+        const onDragStart = (e) => {
+            e.preventDefault();
             isDragging = true;
             document.body.classList.add('resizing');
             if (this.state.orientation === 'vertical') {
                 document.body.classList.add('resizing-vertical');
             }
             this.elements.editorResizer.classList.add('dragging');
-            
-            // iframe 내에서 마우스 이벤트를 잃어버리지 않도록 pointer-events none 처리
+
             if (this.elements.previewFrame) {
                 this.elements.previewFrame.style.pointerEvents = 'none';
             }
+            if (this.elements.dragOverlay) {
+                this.elements.dragOverlay.style.display = 'block';
+                this.elements.dragOverlay.style.cursor =
+                    this.state.orientation === 'horizontal' ? 'col-resize' : 'row-resize';
+            }
         };
-        
-        const onMouseMove = (e) => {
+
+        const onDragMove = (e) => {
             if (!isDragging) return;
             e.preventDefault();
-            
+
+            const { clientX, clientY } = getClientPos(e);
             const mainRect = this.elements.mainContent.getBoundingClientRect();
             let newRatio = 50;
-            
+
             if (this.state.orientation === 'horizontal') {
-                // 좌우 드래그 (X축 제한)
-                const clientX = Math.max(mainRect.left, Math.min(e.clientX, mainRect.right));
-                const offsetX = clientX - mainRect.left;
-                newRatio = (offsetX / mainRect.width) * 100;
+                const cx = Math.max(mainRect.left, Math.min(clientX, mainRect.right));
+                newRatio = ((cx - mainRect.left) / mainRect.width) * 100;
             } else {
-                // 상하 드래그 (Y축 제한)
-                const clientY = Math.max(mainRect.top, Math.min(e.clientY, mainRect.bottom));
-                const offsetY = clientY - mainRect.top;
-                newRatio = (offsetY / mainRect.height) * 100;
+                const cy = Math.max(mainRect.top, Math.min(clientY, mainRect.bottom));
+                newRatio = ((cy - mainRect.top) / mainRect.height) * 100;
             }
-            
-            // 비율을 20% ~ 80% 사이로 제한
+
             this.state.editorRatio = Math.max(20, Math.min(80, newRatio));
             this.applyState();
         };
-        
-        const onMouseUp = (e) => {
+
+        const onDragEnd = () => {
             if (!isDragging) return;
             isDragging = false;
 
@@ -245,16 +254,24 @@ export const LayoutManager = {
             if (this.elements.previewFrame) {
                 this.elements.previewFrame.style.pointerEvents = '';
             }
+            if (this.elements.dragOverlay) {
+                this.elements.dragOverlay.style.display = 'none';
+                this.elements.dragOverlay.style.cursor = '';
+            }
 
-            // 리사이즈 완료 후 Monaco 에디터 레이아웃 갱신
             if (window.EditorManager) window.EditorManager.resize();
-
             this.saveToLocalStorage();
         };
 
-        this.elements.editorResizer.addEventListener('mousedown', onMouseDown);
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        // 마우스 이벤트
+        this.elements.editorResizer.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+
+        // 터치 이벤트 (모바일 지원)
+        this.elements.editorResizer.addEventListener('touchstart', onDragStart, { passive: false });
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('touchend', onDragEnd);
     },
 
     // 키보드 단축키 설정
@@ -327,14 +344,8 @@ export const LayoutManager = {
         const wasHorizontal = this.state.orientation === 'horizontal';
         this.state.orientation = wasHorizontal ? 'vertical' : 'horizontal';
 
-        // 세로 -> 가로 전환 시, 세로 상태에서 계산된 극단 값(예: 95%)으로
-        // 미리보기가 너무 좁아지는 것을 방지하기 위해 비율을 보정
-        if (!wasHorizontal && this.state.orientation === 'horizontal') {
-            // 기본은 50:50로 시작하되, 과거 값이 있으면 20~80 사이로만 제한
-            const target = this.state.editorRatio || 50;
-            this.state.editorRatio = Math.max(20, Math.min(80, target));
-
-            // 균형 잡힌 기본 레이아웃을 위해 첫 가로 전환 시에는 50:50을 강제
+        // 세로 → 가로 전환 시 비율 50:50으로 초기화
+        if (!wasHorizontal) {
             this.state.editorRatio = 50;
         }
 
@@ -743,10 +754,10 @@ export const LayoutManager = {
             // 전체화면 모드일 때는 전체화면 버튼과 접기 버튼 숨기기
             if (state.fullscreenEditor) {
                 elements.btnFullscreenEditor.style.display = 'none';
-                elements.btnEditorCollapse.style.display = 'none';
+                if (elements.btnEditorCollapse) elements.btnEditorCollapse.style.display = 'none';
             } else {
                 elements.btnFullscreenEditor.style.display = '';
-                elements.btnEditorCollapse.style.display = '';
+                if (elements.btnEditorCollapse) elements.btnEditorCollapse.style.display = '';
             }
         }
 

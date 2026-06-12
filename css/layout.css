@@ -131,7 +131,15 @@
     background-color: var(--bg-primary);
     border-bottom: var(--border-width) solid var(--border-color);
     min-height: 200px;
-    transition: all var(--transition-normal);
+    min-width: 0;
+    overflow: hidden;
+    transition: flex var(--transition-normal), background-color var(--transition-normal);
+}
+
+/* 드래그 중 transition 비활성화 */
+body.resizing .editor-section,
+body.resizing .preview-section {
+    transition: none !important;
 }
 
 .main-content.layout-horizontal .editor-section {
@@ -159,7 +167,9 @@
     flex-direction: column;
     background-color: var(--bg-primary);
     min-height: 200px;
-    transition: all var(--transition-normal);
+    min-width: 0;
+    overflow: hidden;
+    transition: flex var(--transition-normal), background-color var(--transition-normal);
 }
 
 .preview-section.collapsed {

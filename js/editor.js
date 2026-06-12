@@ -11,6 +11,7 @@ export const EditorManager = {
     },
 
     currentMode: 'html',
+    _parsing: false, // 자동 분리 재진입 방지 플래그
 
     code: {
         html: `<!DOCTYPE html>
@@ -148,11 +149,35 @@ h1 {
             this._parseUnifiedCode(value);
         } else {
             this.code[mode] = value;
+
+            // HTML 탭에 full document가 붙여넣어지면 CSS/JS를 자동 분리
+            if (mode === 'html' && !this._parsing) {
+                const trimmed = value.trim();
+                if (/^<!doctype\s/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
+                    const parsed = this.parseUnifiedHTML(value);
+                    if (parsed.css || parsed.js) {
+                        this._parsing = true;
+                        this.code.html = parsed.html;
+                        this.code.css  = parsed.css;
+                        this.code.js   = parsed.js;
+                        this._setValue(this.editors.html,    parsed.html);
+                        this._setValue(this.editors.css,     parsed.css);
+                        this._setValue(this.editors.js,      parsed.js);
+                        this._setValue(this.editors.unified, this._getUnifiedCode());
+                        this._parsing = false;
+                        if (window.showSuccessNotification) {
+                            window.showSuccessNotification('HTML/CSS/JS 코드가 자동으로 분리되었습니다.');
+                        }
+                        if (window.ProjectManager) window.ProjectManager.triggerAutoSave();
+                        if (window.PreviewManager) window.PreviewManager.scheduleAutoRun();
+                        return;
+                    }
+                }
+            }
         }
 
-        if (window.ProjectManager) {
-            window.ProjectManager.triggerAutoSave();
-        }
+        if (window.ProjectManager) window.ProjectManager.triggerAutoSave();
+        if (window.PreviewManager) window.PreviewManager.scheduleAutoRun();
     },
 
     _switchMode(mode) {
@@ -173,10 +198,21 @@ h1 {
     },
 
     _getUnifiedCode() {
-        const bodyOnly = this.code.html
-            .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/gi, '')
-            .replace(/<\/body>[\s\S]*<\/html>/gi, '')
-            .trim();
+        let bodyOnly = this.code.html;
+        const trimmed = bodyOnly.trim();
+
+        // full document인 경우 DOMParser로 body 내용만 추출
+        if (/^<!doctype/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
+            try {
+                const doc = new DOMParser().parseFromString(bodyOnly, 'text/html');
+                bodyOnly = doc.body.innerHTML.trim();
+            } catch {
+                bodyOnly = bodyOnly
+                    .replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/gi, '')
+                    .replace(/<\/body>[\s\S]*<\/html>/gi, '')
+                    .trim();
+            }
+        }
 
         return `<!DOCTYPE html>
 <html lang="ko">
@@ -198,17 +234,30 @@ ${this.code.js}
     },
 
     _parseUnifiedCode(unified) {
-        const cssMatch = unified.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-        if (cssMatch) this.code.css = cssMatch[1].trim();
+        try {
+            const doc = new DOMParser().parseFromString(unified, 'text/html');
 
-        const jsMatch = unified.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
-        if (jsMatch) this.code.js = jsMatch[1].trim();
+            // style 태그 전체 추출 후 제거
+            let css = '';
+            doc.querySelectorAll('style').forEach(s => {
+                css += s.textContent + '\n';
+                s.remove();
+            });
 
-        const bodyMatch = unified.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-            this.code.html = bodyMatch[1]
-                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                .trim();
+            // 인라인 script 태그 전체 추출 후 제거 (src 있는 외부 스크립트는 유지)
+            let js = '';
+            doc.querySelectorAll('script').forEach(s => {
+                if (!s.hasAttribute('src')) {
+                    js += s.textContent + '\n';
+                    s.remove();
+                }
+            });
+
+            this.code.html = doc.body.innerHTML.trim();
+            this.code.css  = css.trim();
+            this.code.js   = js.trim();
+        } catch (e) {
+            console.error('[parseUnifiedCode] DOMParser 실패:', e);
         }
 
         // 분리 에디터에 반영 (값이 실제로 다를 때만 → 불필요한 이벤트 방지)
@@ -227,6 +276,53 @@ ${this.code.js}
     },
 
     // ── 공개 API (다른 모듈에서 사용) ────────────────────────────
+
+    // 단일 HTML 파일을 HTML/CSS/JS로 정밀하게 분리 파싱하는 메서드
+    parseUnifiedHTML(rawHtml) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawHtml, 'text/html');
+            
+            // 1. CSS 추출 및 제거
+            let cssContent = '';
+            const styleTags = doc.querySelectorAll('style');
+            styleTags.forEach(style => {
+                cssContent += style.textContent + '\n';
+                style.remove();
+            });
+            
+            // 2. JS 추출 및 제거 (인라인 스크립트만 대상)
+            let jsContent = '';
+            const scriptTags = doc.querySelectorAll('script');
+            scriptTags.forEach(script => {
+                if (!script.hasAttribute('src')) {
+                    jsContent += script.textContent + '\n';
+                    script.remove();
+                }
+            });
+            
+            // 3. 남은 마크업 추출
+            let htmlContent = '';
+            if (rawHtml.trim().toLowerCase().startsWith('<!doctype') || rawHtml.toLowerCase().includes('<html')) {
+                htmlContent = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+            } else {
+                htmlContent = doc.body.innerHTML;
+            }
+            
+            return {
+                html: htmlContent.trim(),
+                css: cssContent.trim(),
+                js: jsContent.trim()
+            };
+        } catch (e) {
+            console.error('Failed to parse unified HTML:', e);
+            return {
+                html: rawHtml,
+                css: '',
+                js: ''
+            };
+        }
+    },
 
     getCode() {
         return {

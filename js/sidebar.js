@@ -74,24 +74,32 @@ export const SidebarManager = {
             if (!files.length) return;
 
             const loaded = { html: null, css: null, js: null };
+            let htmlText = null;
 
             await Promise.all(files.map(async (file) => {
                 const ext = (file.name.split('.').pop() || '').toLowerCase();
                 if (!['html', 'htm', 'css', 'js'].includes(ext)) return;
                 const text = await this.readFileAsText(file);
-                if (ext === 'html' || ext === 'htm') loaded.html = text;
+                if (ext === 'html' || ext === 'htm') htmlText = text;
                 else if (ext === 'css') loaded.css = text;
                 else if (ext === 'js') loaded.js = text;
             }));
+
+            // HTML 파일이 로드되었을 경우, 정밀 파서로 인라인 스타일/스크립트 분할 실행
+            let parsed = { html: null, css: null, js: null };
+            if (htmlText && window.EditorManager) {
+                parsed = window.EditorManager.parseUnifiedHTML(htmlText);
+            }
 
             const current = (window.EditorManager && window.EditorManager.getCode())
                 ? window.EditorManager.getCode()
                 : { html: '', css: '', js: '' };
 
+            // 병합 우선순위: 업로드된 독립 파일 > HTML에서 파싱된 인라인 코드 > 현재 에디터에 적혀있던 코드
             const merged = {
-                html: loaded.html ?? current.html,
-                css: loaded.css ?? current.css,
-                js: loaded.js ?? current.js,
+                html: parsed.html ?? current.html,
+                css: loaded.css ?? parsed.css ?? current.css,
+                js: loaded.js ?? parsed.js ?? current.js,
             };
 
             if (window.EditorManager) {

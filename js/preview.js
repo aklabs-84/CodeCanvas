@@ -5,11 +5,14 @@ export const PreviewManager = {
     consoleOutput: null,
     consoleLogs: [],
     currentBlobUrl: null,
+    autoRun: false,
+    _autoRunTimer: null,
 
     // 초기화
     init() {
         this.previewFrame = document.getElementById('preview-frame');
         this.consoleOutput = document.getElementById('console-output');
+        this._loadAutoRunPreference();
         this.attachEventListeners();
         this.setupConsoleCapture();
     },
@@ -18,14 +21,13 @@ export const PreviewManager = {
     // 이벤트 리스너
     attachEventListeners() {
         const btnRun = document.getElementById('btn-run');
-        btnRun?.addEventListener('click', () => {
-            this.run();
-        });
+        btnRun?.addEventListener('click', () => this.run());
 
         const btnClearConsole = document.getElementById('btn-clear-console');
-        btnClearConsole?.addEventListener('click', () => {
-            this.clearConsole();
-        });
+        btnClearConsole?.addEventListener('click', () => this.clearConsole());
+
+        const btnAutoRun = document.getElementById('btn-autorun');
+        btnAutoRun?.addEventListener('click', () => this.toggleAutoRun());
 
         // Ctrl+Enter로 실행
         document.addEventListener('keydown', (e) => {
@@ -36,9 +38,53 @@ export const PreviewManager = {
         });
     },
 
+    // 자동 실행 토글
+    toggleAutoRun() {
+        this.autoRun = !this.autoRun;
+        localStorage.setItem('codecanvas_autorun', JSON.stringify(this.autoRun));
+        this._updateAutoRunButton();
+        if (this.autoRun) this.run(); // 켜는 순간 즉시 한 번 실행
+    },
+
+    // 자동 실행 버튼 UI 동기화
+    _updateAutoRunButton() {
+        const btn = document.getElementById('btn-autorun');
+        if (!btn) return;
+        btn.classList.toggle('btn-primary', this.autoRun);
+        btn.classList.toggle('btn-secondary', !this.autoRun);
+        btn.title = this.autoRun
+            ? '자동 실행 켜짐 — 코드 변경 시 자동 갱신 (클릭하여 끄기)'
+            : '자동 실행 꺼짐 (클릭하여 켜기)';
+        const iconSpan = btn.querySelector('.icon');
+        if (iconSpan) iconSpan.textContent = this.autoRun ? '⚡' : '⚡';
+    },
+
+    // 자동 실행 예약 (debounce 1초)
+    scheduleAutoRun() {
+        if (!this.autoRun) return;
+        if (this._autoRunTimer) clearTimeout(this._autoRunTimer);
+        this._autoRunTimer = setTimeout(() => {
+            this._autoRunTimer = null;
+            this.run();
+        }, 1000);
+    },
+
+    // localStorage에서 자동 실행 설정 복원
+    _loadAutoRunPreference() {
+        try {
+            const saved = localStorage.getItem('codecanvas_autorun');
+            if (saved !== null) {
+                this.autoRun = JSON.parse(saved);
+            }
+        } catch {
+            this.autoRun = false;
+        }
+        // DOM이 준비된 후 버튼 상태 반영
+        requestAnimationFrame(() => this._updateAutoRunButton());
+    },
+
     // 코드 실행
     run() {
-        // EditorManager에서 코드 가져오기
         const code = window.EditorManager?.getCode();
         if (!code) {
             console.warn('EditorManager not initialized');
@@ -46,7 +92,21 @@ export const PreviewManager = {
         }
 
         this.clearConsole();
+        this._clearErrorTabs(); // 실행 시 에러 표시 초기화
         this.renderPreview(code);
+    },
+
+    // 에러가 있는 탭의 시각 표시 제거
+    _clearErrorTabs() {
+        document.querySelectorAll('.tab-btn.has-error').forEach(btn => {
+            btn.classList.remove('has-error');
+        });
+    },
+
+    // 에러 발생 시 해당 언어 탭에 빨간 점 표시
+    _markErrorTab(lang) {
+        const tab = document.querySelector(`.tab-btn[data-mode="${lang}"]`);
+        tab?.classList.add('has-error');
     },
 
     // 미리보기 렌더링
@@ -191,6 +251,10 @@ ${jsTag}
         window.addEventListener('message', (e) => {
             if (e.data.type === 'console') {
                 this.logToConsole(e.data.level, e.data.message);
+                // 런타임 에러 발생 시 JS 탭에 에러 표시
+                if (e.data.level === 'error') {
+                    this._markErrorTab('js');
+                }
             }
         });
     },

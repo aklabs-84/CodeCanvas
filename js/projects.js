@@ -379,11 +379,15 @@ export const ProjectManager = {
         }
 
         try {
-            // 저장 전 현재 UI 상태(제목, 코드)를 프로젝트 객체에 반영
-            this.saveCurrentProject(true);
-            
-            // 최신화된 데이터로 다시 할당 (인자가 없을 경우 this.currentProject 사용)
-            if (project === this.currentProject) {
+            // 에디터 최신 상태를 currentProject에 반영 (로컬 저장 없이 — 호출 전 이미 저장됨)
+            if (window.EditorManager && this.currentProject) {
+                this.currentProject.code = window.EditorManager.getCode();
+                const titleInput = document.getElementById('project-title');
+                if (titleInput) this.currentProject.title = titleInput.value || this.currentProject.title;
+            }
+
+            // 최신화된 데이터로 재할당
+            if (project === null || project === undefined) {
                 project = this.currentProject;
             }
 
@@ -401,7 +405,7 @@ export const ProjectManager = {
 
             const response = await fetch(CONFIG.GAS_APP_URL, {
                 method: 'POST',
-                mode: 'no-cors', // GAS의 302 리다이렉트 시 발생하는 CORS 에러를 방지하기 위해 no-cors 사용
+                mode: 'cors', // 단순 요청(Simple Request)을 통해 CORS OPTIONS를 피하고 302 리다이렉트 응답을 안전히 파싱
                 redirect: 'follow',
                 headers: {
                     'Content-Type': 'text/plain;charset=utf-8',
@@ -409,12 +413,14 @@ export const ProjectManager = {
                 body: JSON.stringify(payload)
             });
 
-            // GAS는 리다이렉트 후 결과값을 반환하므로 response.ok 체크는 신뢰하기 어려울 수 있음
-            // 하지만 요청이 성공적으로 전송되면 일단 성공으로 간주
-            
-            console.log('Project sync request sent to cloud:', project.id);
-            this.updateSaveStatus('saved');
-            return project.id;
+            const data = await response.json();
+            if (data && data.status === 'success') {
+                console.log('Project sync successful:', data.id);
+                this.updateSaveStatus('saved');
+                return data.id;
+            } else {
+                throw new Error(data.message || '클라우드 저장 응답 오류');
+            }
         } catch (error) {
             console.error('Failed to sync to cloud:', error);
             this.updateSaveStatus('error');

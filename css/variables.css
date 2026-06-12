@@ -172,6 +172,17 @@ body {
     background-color: var(--bg-tertiary);
 }
 
+.btn.active {
+    background-color: var(--accent-primary);
+    color: var(--accent-text);
+    border-color: var(--accent-primary);
+}
+
+.btn.active:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
 .btn-icon {
     padding: var(--spacing-xs);
     min-width: 32px;

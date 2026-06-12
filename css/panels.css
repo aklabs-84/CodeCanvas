@@ -95,6 +95,19 @@ body.resizing-vertical .editor-pane {
     pointer-events: none !important;
 }
 
+/* 투명 드래그 오버레이 (이벤트 가로채기 방지) */
+.drag-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    display: none;
+    background: transparent;
+    user-select: none;
+}
+
 /* 레이아웃별 특수 스타일 */
 
 /* 에디터만 보기 */

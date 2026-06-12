@@ -9,6 +9,7 @@ import { SidebarManager } from './sidebar.js';
 import { ShareManager } from './share.js';
 import { AuthManager } from './auth.js';
 import { DownloadManager } from './download.js';
+import { SnippetManager } from './snippets.js';
 
 // 전역 객체로 등록 (다른 모듈에서 접근 가능하도록)
 window.LayoutManager = LayoutManager;
@@ -20,6 +21,7 @@ window.SidebarManager = SidebarManager;
 window.ShareManager = ShareManager;
 window.AuthManager = AuthManager;
 window.DownloadManager = DownloadManager;
+window.SnippetManager = SnippetManager;
 
 // 앱 초기화
 async function initApp() {
@@ -62,7 +64,11 @@ async function initApp() {
         DownloadManager.init();
         console.log('✅ Download manager initialized');
 
-        // 10. 뷰 모드 -> 에디터 모드 전환 버튼
+        // 10. 스니펫 팔레트 초기화
+        SnippetManager.init();
+        console.log('✅ Snippet manager initialized');
+
+        // 11. 뷰 모드 -> 에디터 모드 전환 버튼
         const btnGoEdit = document.getElementById('btn-go-edit');
         btnGoEdit?.addEventListener('click', (e) => {
             e.preventDefault();
@@ -72,7 +78,7 @@ async function initApp() {
             showSuccessNotification('에디터 모드로 전환되었습니다.');
         });
 
-        // 11. 저장 버튼 이벤트
+        // 12. 저장 버튼 이벤트
         const btnSave = document.getElementById('btn-save');
         btnSave?.addEventListener('click', async () => {
             // 로컬 저장
@@ -96,24 +102,26 @@ async function initApp() {
         const linkToggleAuth = document.getElementById('link-toggle-auth');
         const authToggleText = document.getElementById('auth-toggle-text');
         
+        const authTogglePrefix = document.getElementById('auth-toggle-prefix');
         let isSignupMode = false;
 
         btnLogin?.addEventListener('click', () => {
-            if (AuthManager.isAuthenticated) return; // 이미 로그인된 상태면 AuthManager.updateUI에서 로그아웃 처리함
+            if (AuthManager.isAuthenticated) return;
             loginModal.classList.remove('hidden');
         });
 
+        // innerHTML 교체 없이 텍스트 노드/링크만 직접 업데이트 → 이벤트 리스너 안전
         linkToggleAuth?.addEventListener('click', (e) => {
             e.preventDefault();
             isSignupMode = !isSignupMode;
             authTitle.textContent = isSignupMode ? '회원가입' : '로그인';
             btnAuthSubmit.textContent = isSignupMode ? '가입하기' : '로그인';
-            authToggleText.innerHTML = isSignupMode 
-                ? '이미 계정이 있으신가요? <a href="#" id="link-toggle-auth">로그인</a>'
-                : '계정이 없으신가요? <a href="#" id="link-toggle-auth">회원가입</a>';
-            
-            // 이벤트 리스너 재연결 (innerHTML 교체 때문)
-            document.getElementById('link-toggle-auth').onclick = (e) => linkToggleAuth.click();
+            if (authTogglePrefix) {
+                authTogglePrefix.textContent = isSignupMode
+                    ? '이미 계정이 있으신가요? '
+                    : '계정이 없으신가요? ';
+            }
+            linkToggleAuth.textContent = isSignupMode ? '로그인' : '회원가입';
         });
 
         authForm?.addEventListener('submit', async (e) => {
@@ -154,7 +162,7 @@ async function initApp() {
             });
         });
 
-        // 11. 공유 프로젝트 체크 및 로드
+        // 13. 공유 프로젝트 체크 및 로드
         const urlParams = new URLSearchParams(window.location.search);
         const sharedId = urlParams.get('p');
         if (sharedId) {

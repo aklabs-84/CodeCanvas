@@ -18,3 +18,14 @@ npm-debug.log*
 # Environment files
 .env
 .env.local
+
+# Build output
+dist/
+
+# Playwright test artifacts
+.playwright-mcp/
+
+# PDCA internal tracking
+Docs/.bkit-memory.json
+Docs/.pdca-status.json
+Docs/.pdca-snapshots/

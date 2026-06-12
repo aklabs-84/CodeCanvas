@@ -37,6 +37,10 @@
                 <span class="icon">▶️</span>
                 <span class="text">실행</span>
             </button>
+            <button id="btn-autorun" class="btn btn-secondary" title="자동 실행 꺼짐 (클릭하여 켜기)">
+                <span class="icon">⚡</span>
+                <span class="text">자동</span>
+            </button>
             <button id="btn-download" class="btn btn-secondary" title="다운로드">
                 <span class="icon">⬇️</span>
                 <span class="text">다운로드</span>
@@ -135,6 +139,12 @@
                         <button class="tab-btn" data-mode="unified">통합</button>
                     </div>
                     <div class="section-controls">
+                        <div class="snippet-wrapper" id="snippet-wrapper">
+                            <button id="btn-snippet" class="btn-icon" title="코드 스니펫 삽입">
+                                <span class="icon">📎</span>
+                            </button>
+                            <div id="snippet-dropdown" class="snippet-dropdown hidden"></div>
+                        </div>
                         <button id="btn-close-fullscreen-editor" class="btn-icon btn-close-fullscreen-editor" title="전체화면 닫기 (ESC)" style="display: none;">
                             <span class="icon">✕</span>
                         </button>
@@ -235,11 +245,14 @@
                     <button type="submit" id="btn-auth-submit" class="btn btn-primary w-100">로그인</button>
                 </form>
                 <div class="auth-toggle">
-                    <p id="auth-toggle-text">계정이 없으신가요? <a href="#" id="link-toggle-auth">회원가입</a></p>
+                    <p id="auth-toggle-text"><span id="auth-toggle-prefix">계정이 없으신가요? </span><a href="#" id="link-toggle-auth">회원가입</a></p>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- 드래그 리사이즈 시 마우스 이벤트 가로채기 방지용 투명 오버레이 -->
+    <div id="drag-overlay" class="drag-overlay" style="display: none;"></div>
 
 
     <!-- Monaco Editor CDN (VS Code 동일 엔진) -->
