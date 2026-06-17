@@ -47,7 +47,7 @@ h1 {
     // 언어 서비스 워커 설정 (IntelliSense 활성화 핵심)
     _setupWorkers() {
         window.MonacoEnvironment = {
-            getWorkerUrl(moduleId, label) {
+            getWorker(moduleId, label) {
                 const workerMap = {
                     css:        `${MONACO_BASE}/language/css/css.worker.js`,
                     scss:       `${MONACO_BASE}/language/css/css.worker.js`,
@@ -59,10 +59,12 @@ h1 {
                     javascript: `${MONACO_BASE}/language/typescript/ts.worker.js`,
                 };
                 const workerScript = workerMap[label] || `${MONACO_BASE}/editor/editor.worker.js`;
-                // data URI 방식: CDN cross-origin worker 제한 우회
-                return `data:text/javascript;charset=utf-8,${encodeURIComponent(
-                    `self.MonacoEnvironment={baseUrl:'${MONACO_BASE}/'};importScripts('${workerScript}');`
-                )}`;
+                // Blob URL 방식: data: URI는 null origin으로 importScripts CDN 호출이 Chrome에서 차단됨
+                const blob = new Blob(
+                    [`self.MonacoEnvironment={baseUrl:'${MONACO_BASE}/'};importScripts('${workerScript}');`],
+                    { type: 'text/javascript' }
+                );
+                return new Worker(URL.createObjectURL(blob));
             }
         };
     },
