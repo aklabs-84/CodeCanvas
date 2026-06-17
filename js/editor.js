@@ -48,18 +48,18 @@ h1 {
     _setupWorkers() {
         window.MonacoEnvironment = {
             getWorker(moduleId, label) {
+                // Monaco 0.52+: min/ 빌드에서 파일명이 *.worker.js → *Worker.js 로 변경됨
                 const workerMap = {
-                    css:        `${MONACO_BASE}/language/css/css.worker.js`,
-                    scss:       `${MONACO_BASE}/language/css/css.worker.js`,
-                    less:       `${MONACO_BASE}/language/css/css.worker.js`,
-                    html:       `${MONACO_BASE}/language/html/html.worker.js`,
-                    handlebars: `${MONACO_BASE}/language/html/html.worker.js`,
-                    razor:      `${MONACO_BASE}/language/html/html.worker.js`,
-                    typescript: `${MONACO_BASE}/language/typescript/ts.worker.js`,
-                    javascript: `${MONACO_BASE}/language/typescript/ts.worker.js`,
+                    css:        `${MONACO_BASE}/language/css/cssWorker.js`,
+                    scss:       `${MONACO_BASE}/language/css/cssWorker.js`,
+                    less:       `${MONACO_BASE}/language/css/cssWorker.js`,
+                    html:       `${MONACO_BASE}/language/html/htmlWorker.js`,
+                    handlebars: `${MONACO_BASE}/language/html/htmlWorker.js`,
+                    razor:      `${MONACO_BASE}/language/html/htmlWorker.js`,
+                    typescript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
+                    javascript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                 };
-                const workerScript = workerMap[label] || `${MONACO_BASE}/editor/editor.worker.js`;
-                // Blob URL 방식: data: URI는 null origin으로 importScripts CDN 호출이 Chrome에서 차단됨
+                const workerScript = workerMap[label] || `${MONACO_BASE}/base/worker/workerMain.js`;
                 const blob = new Blob(
                     [`self.MonacoEnvironment={baseUrl:'${MONACO_BASE}/'};importScripts('${workerScript}');`],
                     { type: 'text/javascript' }
