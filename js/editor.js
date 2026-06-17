@@ -48,7 +48,6 @@ h1 {
     _setupWorkers() {
         window.MonacoEnvironment = {
             getWorker(moduleId, label) {
-                // Monaco 0.52+: min/ 빌드에서 파일명이 *.worker.js → *Worker.js 로 변경됨
                 const workerMap = {
                     css:        `${MONACO_BASE}/language/css/cssWorker.js`,
                     scss:       `${MONACO_BASE}/language/css/cssWorker.js`,
@@ -59,12 +58,17 @@ h1 {
                     typescript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                     javascript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                 };
-                const workerScript = workerMap[label] || `${MONACO_BASE}/base/worker/workerMain.js`;
-                const blob = new Blob(
-                    [`self.MonacoEnvironment={baseUrl:'${MONACO_BASE}/'};importScripts('${workerScript}');`],
-                    { type: 'text/javascript' }
-                );
-                return new Worker(URL.createObjectURL(blob));
+                const url = workerMap[label] || `${MONACO_BASE}/base/worker/workerMain.js`;
+                // blob worker 내부에서 cross-origin importScripts()는 브라우저가 차단함.
+                // fetch()로 CDN 스크립트를 가져온 뒤 동일 origin blob URL로 importScripts() 호출.
+                const script = `
+self.MonacoEnvironment = { baseUrl: '${MONACO_BASE}/' };
+fetch('${url}', { credentials: 'omit' })
+    .then(r => r.blob())
+    .then(b => { const u = URL.createObjectURL(b); importScripts(u); URL.revokeObjectURL(u); })
+    .catch(e => console.error('[Monaco Worker] load failed:', '${url}', e));
+`;
+                return new Worker(URL.createObjectURL(new Blob([script], { type: 'text/javascript' })));
             }
         };
     },
