@@ -78,17 +78,15 @@ h1 {
                     return new Worker(URL.createObjectURL(new Blob([s], { type: 'text/javascript' })));
                 }
 
-                // 기본 에디터 워커(editorWorkerService): self-contained 번들 없음.
-                // CDN importScripts로 loader.js를 직접 가져온 뒤 AMD로 동적 로딩.
-                // jsDelivr는 Access-Control-Allow-Origin: * 를 지원하므로 cross-origin importScripts 허용.
-                const editorScript = [
-                    `self.MonacoEnvironment={baseUrl:"${MONACO_BASE}/"};`,
-                    `try{`,
-                    `importScripts("${MONACO_BASE}/loader.js");`,
-                    `self.require.config({paths:{vs:"${MONACO_BASE}"}});`,
-                    `self.require(["vs/base/worker/workerMain"],function(){});`,
-                    `}catch(e){console.error("[Monaco Worker] editor worker failed:",e);}`,
-                ].join('');
+                // 기본 에디터 워커(workerMain.js): 자체 AMD 로더가 내장된 self-contained 번들.
+                // 메시지 수신도 자동 설정됨 → 외부 loader.js / require() 호출 불필요.
+                // 단순 fetch → blob → importScripts 패턴으로 실행.
+                const editorUrl = `${MONACO_BASE}/base/worker/workerMain.js`;
+                const editorScript = `(async()=>{try{`
+                    + `const t=await fetch("${editorUrl}",{credentials:"omit"}).then(r=>r.text());`
+                    + `const u=URL.createObjectURL(new Blob([t],{type:"application/javascript"}));`
+                    + `importScripts(u);URL.revokeObjectURL(u);`
+                    + `}catch(e){console.error("[Monaco Worker] load failed:","${editorUrl}",e);}})();`;
                 return new Worker(URL.createObjectURL(new Blob([editorScript], { type: 'text/javascript' })));
             }
         };
