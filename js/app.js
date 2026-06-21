@@ -68,7 +68,23 @@ async function initApp() {
         SnippetManager.init();
         console.log('✅ Snippet manager initialized');
 
-        // 11. 뷰 모드 -> 에디터 모드 전환 버튼
+        // 11. 코드 전체 삭제 버튼
+        document.getElementById('btn-clear-code')?.addEventListener('click', () => {
+            const mode = EditorManager.currentMode;
+            const tabName = mode === 'unified' ? '통합' : mode.toUpperCase();
+            if (!confirm(`${tabName} 탭의 코드를 전체 삭제할까요?`)) return;
+
+            if (mode === 'unified') {
+                EditorManager.setCode({ html: '', css: '', js: '' });
+            } else {
+                const updated = EditorManager.getCode();
+                updated[mode] = '';
+                EditorManager.setCode(updated);
+            }
+            showSuccessNotification(`${tabName} 코드가 삭제되었습니다.`);
+        });
+
+        // 12. 뷰 모드 -> 에디터 모드 전환 버튼
         const btnGoEdit = document.getElementById('btn-go-edit');
         btnGoEdit?.addEventListener('click', (e) => {
             e.preventDefault();
@@ -78,7 +94,7 @@ async function initApp() {
             showSuccessNotification('에디터 모드로 전환되었습니다.');
         });
 
-        // 12. 저장 버튼 이벤트
+        // 13. 저장 버튼 이벤트
         const btnSave = document.getElementById('btn-save');
         btnSave?.addEventListener('click', async () => {
             // 로컬 저장
@@ -162,7 +178,7 @@ async function initApp() {
             });
         });
 
-        // 13. 공유 프로젝트 체크 및 로드
+        // 14. 공유 프로젝트 체크 및 로드
         const urlParams = new URLSearchParams(window.location.search);
         const sharedId = urlParams.get('p');
         if (sharedId) {
@@ -187,7 +203,7 @@ async function initApp() {
             }
         }
 
-        // 12. 초기 프리뷰 렌더링
+        // 15. 초기 프리뷰 렌더링
         setTimeout(() => {
             PreviewManager.run();
         }, sharedId ? 1000 : 100);
