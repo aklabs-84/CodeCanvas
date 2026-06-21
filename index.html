@@ -256,12 +256,12 @@
     <div id="drag-overlay" class="drag-overlay" style="display: none;"></div>
 
 
+    <!-- JSZip CDN (반드시 Monaco loader.js 이전에 로드해야 AMD 충돌 방지) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <!-- Monaco Editor CDN (VS Code 동일 엔진) -->
     <script>var require = { paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } };</script>
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
-
-    <!-- JSZip CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <!-- 뷰 모드에서 에디터로 전환하는 버튼 -->
     <a href="#" id="btn-go-edit" class="btn-edit-mode">🎨 에디터에서 편집하기</a>
