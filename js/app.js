@@ -68,12 +68,25 @@ async function initApp() {
         SnippetManager.init();
         console.log('✅ Snippet manager initialized');
 
-        // 11. 코드 전체 삭제 버튼
-        document.getElementById('btn-clear-code')?.addEventListener('click', () => {
+        // 11. 코드 초기화 드롭다운
+        const clearWrapper = document.getElementById('clear-wrapper');
+        const clearDropdown = document.getElementById('clear-dropdown');
+
+        document.getElementById('btn-clear-code')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearDropdown?.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!clearWrapper?.contains(e.target)) clearDropdown?.classList.add('hidden');
+        });
+
+        // 현재 탭만 삭제
+        document.getElementById('btn-clear-current')?.addEventListener('click', () => {
+            clearDropdown?.classList.add('hidden');
             const mode = EditorManager.currentMode;
             const tabName = mode === 'unified' ? '통합' : mode.toUpperCase();
-            if (!confirm(`${tabName} 탭의 코드를 전체 삭제할까요?`)) return;
-
+            if (!confirm(`${tabName} 탭의 코드를 삭제할까요?`)) return;
             if (mode === 'unified') {
                 EditorManager.setCode({ html: '', css: '', js: '' });
             } else {
@@ -82,6 +95,33 @@ async function initApp() {
                 EditorManager.setCode(updated);
             }
             showSuccessNotification(`${tabName} 코드가 삭제되었습니다.`);
+        });
+
+        // 전체 탭 초기화
+        document.getElementById('btn-clear-all')?.addEventListener('click', () => {
+            clearDropdown?.classList.add('hidden');
+            if (!confirm('HTML · CSS · JS 탭 코드를 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
+            EditorManager.setCode({ html: '', css: '', js: '' });
+            showSuccessNotification('모든 탭 코드가 초기화되었습니다.');
+        });
+
+        // 통합 탭 가이드 배너 토글
+        const guideBanner = document.getElementById('unified-guide-banner');
+        let guideDismissed = false;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.mode === 'unified' && !guideDismissed) {
+                    guideBanner?.classList.remove('hidden');
+                } else {
+                    guideBanner?.classList.add('hidden');
+                }
+            });
+        });
+
+        document.getElementById('btn-close-unified-guide')?.addEventListener('click', () => {
+            guideBanner?.classList.add('hidden');
+            guideDismissed = true;
         });
 
         // 12. 뷰 모드 -> 에디터 모드 전환 버튼

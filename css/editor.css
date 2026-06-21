@@ -1,5 +1,103 @@
 /* Editor.css - 코드 에디터 스타일 */
 
+/* ── 코드 초기화 드롭다운 ─────────────────────── */
+.clear-wrapper {
+    position: relative;
+}
+
+.clear-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 220px;
+    background-color: var(--bg-secondary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 5000;
+    overflow: hidden;
+}
+
+.clear-dropdown-header {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    background-color: var(--bg-tertiary);
+    border-bottom: var(--border-width) solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.clear-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    transition: background-color var(--transition-fast);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.clear-item:hover { background-color: var(--bg-hover); }
+.clear-item:active { background-color: var(--bg-active); }
+
+.clear-item-danger { color: #e74c3c; }
+.clear-item-danger:hover { background-color: rgba(231, 76, 60, 0.08); }
+
+.clear-item-icon { font-size: 15px; flex-shrink: 0; }
+
+.clear-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.clear-item-label { font-weight: 500; }
+
+.clear-item-desc {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.clear-item-danger .clear-item-desc { color: rgba(231, 76, 60, 0.7); }
+
+/* ── 통합 탭 가이드 배너 ─────────────────────── */
+.unified-guide-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: 8px var(--spacing-md);
+    background-color: rgba(99, 102, 241, 0.08);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.unified-guide-banner.hidden { display: none; }
+
+.unified-guide-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+.unified-guide-text { flex: 1; }
+.unified-guide-text strong { color: var(--text-primary); }
+
+.unified-guide-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    padding: 0 2px;
+    line-height: 1;
+}
+.unified-guide-close:hover { color: var(--text-primary); }
+
 .editor-pane {
     position: relative;
     height: 100%;
