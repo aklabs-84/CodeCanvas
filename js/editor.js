@@ -59,15 +59,27 @@ h1 {
                     javascript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                 };
                 const url = workerMap[label] || `${MONACO_BASE}/base/worker/workerMain.js`;
-                // blob worker 내부에서 cross-origin importScripts()는 브라우저가 차단함.
-                // fetch()로 CDN 스크립트를 가져온 뒤 동일 origin blob URL로 importScripts() 호출.
-                const script = `
-self.MonacoEnvironment = { baseUrl: '${MONACO_BASE}/' };
-fetch('${url}', { credentials: 'omit' })
-    .then(r => r.blob())
-    .then(b => { const u = URL.createObjectURL(b); importScripts(u); URL.revokeObjectURL(u); })
-    .catch(e => console.error('[Monaco Worker] load failed:', '${url}', e));
-`;
+                // cssWorker.js / tsWorker.js 등은 AMD 모듈로 define()을 호출함.
+                // Worker 컨텍스트에는 AMD 로더가 없으므로, 먼저 loader.js를 blob으로 가져와
+                // define/require를 등록한 뒤 실제 워커 파일을 실행해야 한다.
+                const script = `(async () => {
+    try {
+        const toBlob = code => URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+        const [loaderCode, workerCode] = await Promise.all([
+            fetch('${MONACO_BASE}/loader.js', { credentials: 'omit' }).then(r => r.text()),
+            fetch('${url}', { credentials: 'omit' }).then(r => r.text()),
+        ]);
+        const loaderBlobUrl = toBlob(loaderCode);
+        importScripts(loaderBlobUrl);
+        URL.revokeObjectURL(loaderBlobUrl);
+        self.require.config({ paths: { vs: '${MONACO_BASE}' } });
+        const workerBlobUrl = toBlob(workerCode);
+        importScripts(workerBlobUrl);
+        URL.revokeObjectURL(workerBlobUrl);
+    } catch(e) {
+        console.error('[Monaco Worker] load failed:', '${url}', e);
+    }
+})();`;
                 return new Worker(URL.createObjectURL(new Blob([script], { type: 'text/javascript' })));
             }
         };
