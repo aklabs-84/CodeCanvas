@@ -193,6 +193,20 @@ export const PreviewManager = {
     window.addEventListener('unhandledrejection', function(e) {
         post('error', ['Unhandled Promise rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason))]);
     });
+    // srcdoc iframe의 base URL이 부모 페이지를 가리키므로 #hash 링크 클릭 시
+    // iframe이 부모 URL로 이동하는 문제를 방지하고 내부에서 스크롤 처리
+    document.addEventListener('click', function(e) {
+        var a = e.target.closest('a');
+        if (!a) return;
+        var href = a.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            e.preventDefault();
+            var id = href.slice(1);
+            var el = id ? document.getElementById(id) : null;
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+            else if (!id) window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, true);
     ${injectedLibs.length > 0 ? `post('log', ['[Smart Loader] Automatically injected: ${injectedLibs.join(", ")}']);` : ''}
 })();
 <\/script>`;
