@@ -30,16 +30,19 @@ export const DownloadManager = {
             const projectTitle = document.getElementById('project-title')?.value || '새 프로젝트';
             const safeProjectTitle = this.sanitizeFilename(projectTitle);
 
+            // body 내용만 추출 (full document인 경우)
+            const bodyHTML = this.extractBodyContent(html);
+
             // ZIP 파일 생성
             const zip = new JSZip();
 
-            // 개별 파일 추가
-            zip.file('index.html', html);
+            // index.html: style.css, script.js 외부 파일 연결
+            zip.file('index.html', this.createIndexHTML(bodyHTML, projectTitle));
             zip.file('style.css', css);
             zip.file('script.js', js);
 
-            // 통합 HTML 파일 생성
-            const unifiedHTML = this.createUnifiedHTML(html, css, js);
+            // unified.html: CSS/JS 인라인 통합 (EditorManager 내부 메서드 우선 사용)
+            const unifiedHTML = window.EditorManager._getUnifiedCode?.() ?? this.createUnifiedHTML(bodyHTML, css, js);
             zip.file('unified.html', unifiedHTML);
 
             // README 파일 추가
@@ -57,8 +60,39 @@ export const DownloadManager = {
         }
     },
 
-    // 통합 HTML 파일 생성
-    createUnifiedHTML(html, css, js) {
+    // full document에서 body 내용만 추출
+    extractBodyContent(html) {
+        const trimmed = html.trim();
+        if (/^<!doctype\s/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
+            try {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                return doc.body.innerHTML.trim();
+            } catch {
+                return html;
+            }
+        }
+        return html;
+    },
+
+    // index.html: 외부 CSS/JS 파일을 참조하는 독립 HTML
+    createIndexHTML(bodyHTML, title) {
+        return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+${bodyHTML}
+    <script src="script.js"></script>
+</body>
+</html>`;
+    },
+
+    // unified.html: CSS/JS 인라인 통합 HTML (fallback)
+    createUnifiedHTML(bodyHTML, css, js) {
         return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -66,14 +100,14 @@ export const DownloadManager = {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
-        ${css}
+${css}
     </style>
 </head>
 <body>
-    ${html}
+${bodyHTML}
     <script>
-        ${js}
-    </script>
+${js}
+    <\/script>
 </body>
 </html>`;
     },
