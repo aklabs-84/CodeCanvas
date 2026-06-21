@@ -225,11 +225,16 @@ h1 {
     _getUnifiedCode() {
         let bodyOnly = this.code.html;
         const trimmed = bodyOnly.trim();
+        let headExternalTags = ''; // head의 외부 CDN 스크립트/스타일시트
 
-        // full document인 경우 DOMParser로 body 내용만 추출
+        // full document인 경우 DOMParser로 body 내용만 추출 + head의 외부 리소스 보존
         if (/^<!doctype/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
             try {
                 const doc = new DOMParser().parseFromString(bodyOnly, 'text/html');
+                // head의 외부 스크립트·스타일시트 추출 (CDN 등)
+                doc.head.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
+                    headExternalTags += '\n    ' + el.outerHTML;
+                });
                 bodyOnly = doc.body.innerHTML.trim();
             } catch {
                 bodyOnly = bodyOnly
@@ -244,7 +249,7 @@ h1 {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Document</title>${headExternalTags}
     <style>
 ${this.code.css}
     </style>
@@ -278,7 +283,13 @@ ${this.code.js}
                 }
             });
 
-            this.code.html = doc.body.innerHTML.trim();
+            // <head>의 외부 CDN 스크립트를 body 상단으로 이동 (데이터 손실 방지)
+            let headScripts = '';
+            doc.head.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
+                headScripts += el.outerHTML + '\n';
+            });
+
+            this.code.html = (headScripts ? headScripts + '\n' : '') + doc.body.innerHTML.trim();
             this.code.css  = css.trim();
             this.code.js   = js.trim();
         } catch (e) {
