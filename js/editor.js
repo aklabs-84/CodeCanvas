@@ -86,7 +86,7 @@ h1 {
                     `try{`,
                     `importScripts("${MONACO_BASE}/loader.js");`,
                     `self.require.config({paths:{vs:"${MONACO_BASE}"}});`,
-                    `self.require(["vs/base/worker/workerMain"]);`,
+                    `self.require(["vs/base/worker/workerMain"],function(){});`,
                     `}catch(e){console.error("[Monaco Worker] editor worker failed:",e);}`,
                 ].join('');
                 return new Worker(URL.createObjectURL(new Blob([editorScript], { type: 'text/javascript' })));
