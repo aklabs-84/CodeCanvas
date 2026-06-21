@@ -1,12 +1,10 @@
 // download.js - 코드 다운로드 모듈
 
 export const DownloadManager = {
-    // 초기화
     init() {
         this.attachEventListeners();
     },
 
-    // 이벤트 리스너
     attachEventListeners() {
         const btnDownload = document.getElementById('btn-download');
         btnDownload?.addEventListener('click', () => {
@@ -14,44 +12,21 @@ export const DownloadManager = {
         });
     },
 
-    // 프로젝트 다운로드
-    async downloadProject() {
+    downloadProject() {
         try {
-            // EditorManager에서 코드 가져오기
-            const code = window.EditorManager?.getCode();
-            if (!code) {
+            if (!window.EditorManager) {
                 console.error('EditorManager not initialized');
                 return;
             }
 
-            const { html, css, js } = code;
+            // CSS/JS 인라인 통합 HTML 가져오기
+            const unifiedHTML = window.EditorManager._getUnifiedCode();
 
-            // 프로젝트 제목 가져오기
             const projectTitle = document.getElementById('project-title')?.value || '새 프로젝트';
             const safeProjectTitle = this.sanitizeFilename(projectTitle);
 
-            // body 내용만 추출 (full document인 경우)
-            const bodyHTML = this.extractBodyContent(html);
-
-            // ZIP 파일 생성
-            const zip = new JSZip();
-
-            // index.html: style.css, script.js 외부 파일 연결
-            zip.file('index.html', this.createIndexHTML(bodyHTML, projectTitle));
-            zip.file('style.css', css);
-            zip.file('script.js', js);
-
-            // unified.html: CSS/JS 인라인 통합 (EditorManager 내부 메서드 우선 사용)
-            const unifiedHTML = window.EditorManager._getUnifiedCode?.() ?? this.createUnifiedHTML(bodyHTML, css, js);
-            zip.file('unified.html', unifiedHTML);
-
-            // README 파일 추가
-            const readme = this.createReadme(projectTitle);
-            zip.file('README.md', readme);
-
-            // ZIP 파일 생성 및 다운로드
-            const blob = await zip.generateAsync({ type: 'blob' });
-            this.downloadBlob(blob, `${safeProjectTitle}.zip`);
+            const blob = new Blob([unifiedHTML], { type: 'text/html;charset=utf-8' });
+            this.downloadBlob(blob, `${safeProjectTitle}.html`);
 
             console.log('프로젝트 다운로드 완료');
         } catch (error) {
@@ -60,89 +35,6 @@ export const DownloadManager = {
         }
     },
 
-    // full document에서 body 내용만 추출
-    extractBodyContent(html) {
-        const trimmed = html.trim();
-        if (/^<!doctype\s/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
-            try {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                return doc.body.innerHTML.trim();
-            } catch {
-                return html;
-            }
-        }
-        return html;
-    },
-
-    // index.html: 외부 CSS/JS 파일을 참조하는 독립 HTML
-    createIndexHTML(bodyHTML, title) {
-        return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-${bodyHTML}
-    <script src="script.js"></script>
-</body>
-</html>`;
-    },
-
-    // unified.html: CSS/JS 인라인 통합 HTML (fallback)
-    createUnifiedHTML(bodyHTML, css, js) {
-        return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-${css}
-    </style>
-</head>
-<body>
-${bodyHTML}
-    <script>
-${js}
-    <\/script>
-</body>
-</html>`;
-    },
-
-    // README 파일 생성
-    createReadme(projectTitle) {
-        return `# ${projectTitle}
-
-CodeCanvas에서 생성된 프로젝트입니다.
-
-## 파일 구조
-
-- \`index.html\` - HTML 코드
-- \`style.css\` - CSS 스타일
-- \`script.js\` - JavaScript 코드
-- \`unified.html\` - 통합 HTML 파일 (모든 코드가 하나의 파일에 포함)
-
-## 사용 방법
-
-### 개별 파일 사용
-1. \`index.html\` 파일을 열어 다음과 같이 CSS와 JS를 연결하세요:
-\`\`\`html
-<link rel="stylesheet" href="style.css">
-<script src="script.js"></script>
-\`\`\`
-
-### 통합 파일 사용
-\`unified.html\` 파일을 바로 브라우저에서 열면 됩니다.
-
----
-🎨 Created with [CodeCanvas](https://codecanvas.dev)
-`;
-    },
-
-    // 파일명 안전하게 만들기
     sanitizeFilename(filename) {
         return filename
             .replace(/[^a-z0-9가-힣_-]/gi, '_')
@@ -150,7 +42,6 @@ CodeCanvas에서 생성된 프로젝트입니다.
             .substring(0, 100);
     },
 
-    // Blob 다운로드
     downloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
