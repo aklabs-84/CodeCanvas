@@ -48,7 +48,9 @@ h1 {
     _setupWorkers() {
         window.MonacoEnvironment = {
             getWorker(moduleId, label) {
-                const workerMap = {
+                // 언어 워커(css/ts/html)는 min 빌드에서 self-contained AMD 번들.
+                // → loader.js로 AMD 환경 구성 후 blob으로 실행
+                const langWorkerMap = {
                     css:        `${MONACO_BASE}/language/css/cssWorker.js`,
                     scss:       `${MONACO_BASE}/language/css/cssWorker.js`,
                     less:       `${MONACO_BASE}/language/css/cssWorker.js`,
@@ -58,29 +60,36 @@ h1 {
                     typescript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                     javascript: `${MONACO_BASE}/language/typescript/tsWorker.js`,
                 };
-                const url = workerMap[label] || `${MONACO_BASE}/base/worker/workerMain.js`;
-                // cssWorker.js / tsWorker.js 등은 AMD 모듈로 define()을 호출함.
-                // Worker 컨텍스트에는 AMD 로더가 없으므로, 먼저 loader.js를 blob으로 가져와
-                // define/require를 등록한 뒤 실제 워커 파일을 실행해야 한다.
-                const script = `(async () => {
-    try {
-        const toBlob = code => URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
-        const [loaderCode, workerCode] = await Promise.all([
-            fetch('${MONACO_BASE}/loader.js', { credentials: 'omit' }).then(r => r.text()),
-            fetch('${url}', { credentials: 'omit' }).then(r => r.text()),
-        ]);
-        const loaderBlobUrl = toBlob(loaderCode);
-        importScripts(loaderBlobUrl);
-        URL.revokeObjectURL(loaderBlobUrl);
-        self.require.config({ paths: { vs: '${MONACO_BASE}' } });
-        const workerBlobUrl = toBlob(workerCode);
-        importScripts(workerBlobUrl);
-        URL.revokeObjectURL(workerBlobUrl);
-    } catch(e) {
-        console.error('[Monaco Worker] load failed:', '${url}', e);
-    }
-})();`;
-                return new Worker(URL.createObjectURL(new Blob([script], { type: 'text/javascript' })));
+
+                const bundleUrl = langWorkerMap[label];
+
+                if (bundleUrl) {
+                    // self-contained 번들: loader.js → AMD 등록 → 워커 실행
+                    const s = '(async()=>{try{'
+                        + 'const tb=c=>URL.createObjectURL(new Blob([c],{type:"application/javascript"}));'
+                        + 'const[lc,wc]=await Promise.all(['
+                        + `fetch("${MONACO_BASE}/loader.js",{credentials:"omit"}).then(r=>r.text()),`
+                        + `fetch("${bundleUrl}",{credentials:"omit"}).then(r=>r.text())`
+                        + ']);'
+                        + 'const lu=tb(lc);importScripts(lu);URL.revokeObjectURL(lu);'
+                        + `self.require.config({paths:{vs:"${MONACO_BASE}"}});`
+                        + 'const wu=tb(wc);importScripts(wu);URL.revokeObjectURL(wu);'
+                        + `}catch(e){console.error("[Monaco Worker] load failed:","${bundleUrl}",e);}})();`;
+                    return new Worker(URL.createObjectURL(new Blob([s], { type: 'text/javascript' })));
+                }
+
+                // 기본 에디터 워커(editorWorkerService): self-contained 번들 없음.
+                // CDN importScripts로 loader.js를 직접 가져온 뒤 AMD로 동적 로딩.
+                // jsDelivr는 Access-Control-Allow-Origin: * 를 지원하므로 cross-origin importScripts 허용.
+                const editorScript = [
+                    `self.MonacoEnvironment={baseUrl:"${MONACO_BASE}/"};`,
+                    `try{`,
+                    `importScripts("${MONACO_BASE}/loader.js");`,
+                    `self.require.config({paths:{vs:"${MONACO_BASE}"}});`,
+                    `self.require(["vs/base/worker/workerMain"]);`,
+                    `}catch(e){console.error("[Monaco Worker] editor worker failed:",e);}`,
+                ].join('');
+                return new Worker(URL.createObjectURL(new Blob([editorScript], { type: 'text/javascript' })));
             }
         };
     },
