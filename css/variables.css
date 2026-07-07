@@ -201,6 +201,12 @@ body {
     background-color: var(--bg-hover);
 }
 
+.btn-icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
 .btn-icon-small {
     padding: 2px 6px;
     font-size: var(--font-size-xs);

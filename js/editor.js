@@ -15,6 +15,14 @@ export const EditorManager = {
     currentMode: 'unified',
     _parsing: false, // 자동 분리 재진입 방지 플래그
 
+    // 실행취소/다시실행용 앱 레벨 히스토리 (스냅샷 방식, Monaco 자체 undo와 별개)
+    _history: [],
+    _historyIndex: -1,
+    _historyTimer: null,
+    _restoringHistory: false,
+    HISTORY_DEBOUNCE_MS: 600,
+    HISTORY_LIMIT: 50,
+
     code: {
         html: `<!DOCTYPE html>
 <html lang="ko">
@@ -169,9 +177,12 @@ h1 {
         });
 
         this._switchMode(this.currentMode);
+        this._resetHistory();
     },
 
     _handleCodeChange(mode, value) {
+        this._scheduleHistorySnapshot();
+
         if (mode === 'unified') {
             this._parseUnifiedCode(value);
         } else {
@@ -319,6 +330,81 @@ ${this.code.js}
         }
     },
 
+    // ── 실행취소/다시실행 히스토리 ────────────────────────────
+
+    // 현재 코드 상태를 새 베이스라인으로 삼고 히스토리를 비움 (프로젝트 불러오기, 탭 전체/개별 삭제 시)
+    _resetHistory() {
+        clearTimeout(this._historyTimer);
+        this._historyTimer = null;
+        this._history = [{ html: this.code.html, css: this.code.css, js: this.code.js }];
+        this._historyIndex = 0;
+        this._updateHistoryButtons();
+    },
+
+    // 타이핑/프로그램에 의한 변경을 디바운스해서 하나의 되돌리기 단위로 기록
+    _scheduleHistorySnapshot() {
+        if (this._restoringHistory) return;
+        clearTimeout(this._historyTimer);
+        this._historyTimer = setTimeout(() => this._commitHistorySnapshot(), this.HISTORY_DEBOUNCE_MS);
+    },
+
+    _commitHistorySnapshot() {
+        this._historyTimer = null;
+        const snapshot = { html: this.code.html, css: this.code.css, js: this.code.js };
+        const last = this._history[this._historyIndex];
+        if (last && last.html === snapshot.html && last.css === snapshot.css && last.js === snapshot.js) return;
+
+        // 되돌리기 이후 새 변경이 생기면 이후(redo) 가지는 버림
+        this._history = this._history.slice(0, this._historyIndex + 1);
+        this._history.push(snapshot);
+        if (this._history.length > this.HISTORY_LIMIT) this._history.shift();
+        this._historyIndex = this._history.length - 1;
+        this._updateHistoryButtons();
+    },
+
+    // 대기 중인 디바운스 스냅샷이 있으면 즉시 확정
+    _flushHistory() {
+        if (this._historyTimer) {
+            clearTimeout(this._historyTimer);
+            this._historyTimer = null;
+            this._commitHistorySnapshot();
+        }
+    },
+
+    undo() {
+        this._flushHistory();
+        if (this._historyIndex <= 0) return;
+        this._historyIndex--;
+        this._restoreHistorySnapshot(this._history[this._historyIndex]);
+    },
+
+    redo() {
+        if (this._historyIndex >= this._history.length - 1) return;
+        this._historyIndex++;
+        this._restoreHistorySnapshot(this._history[this._historyIndex]);
+    },
+
+    _restoreHistorySnapshot(snapshot) {
+        this._restoringHistory = true;
+        this.code.html = snapshot.html;
+        this.code.css = snapshot.css;
+        this.code.js = snapshot.js;
+        this._setValue(this.editors.html, snapshot.html);
+        this._setValue(this.editors.css, snapshot.css);
+        this._setValue(this.editors.js, snapshot.js);
+        this._setValue(this.editors.unified, this._getUnifiedCode());
+        this._restoringHistory = false;
+
+        this._updateHistoryButtons();
+        if (window.ProjectManager) window.ProjectManager.triggerAutoSave();
+        if (window.PreviewManager) window.PreviewManager.scheduleAutoRun();
+    },
+
+    _updateHistoryButtons() {
+        if (this.undoBtn) this.undoBtn.disabled = this._historyIndex <= 0;
+        if (this.redoBtn) this.redoBtn.disabled = this._historyIndex >= this._history.length - 1;
+    },
+
     // ── 공개 API (다른 모듈에서 사용) ────────────────────────────
 
     // 단일 HTML 파일을 HTML/CSS/JS로 정밀하게 분리 파싱하는 메서드
@@ -385,6 +471,7 @@ ${this.code.js}
         this._setValue(this.editors.css,     this.code.css);
         this._setValue(this.editors.js,      this.code.js);
         this._setValue(this.editors.unified, this._getUnifiedCode());
+        this._resetHistory();
     },
 
     applyTheme() {
@@ -403,6 +490,13 @@ ${this.code.js}
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => this._switchMode(btn.dataset.mode));
         });
+
+        // 실행취소/다시실행
+        this.undoBtn = document.getElementById('btn-undo');
+        this.redoBtn = document.getElementById('btn-redo');
+        this.undoBtn?.addEventListener('click', () => this.undo());
+        this.redoBtn?.addEventListener('click', () => this.redo());
+        this._updateHistoryButtons();
 
         // 테마 변경 감지 (body class 변화)
         new MutationObserver(() => this.applyTheme()).observe(document.body, {
