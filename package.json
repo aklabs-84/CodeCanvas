@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Web Code Editor with live preview and Google Sheets sync",
   "main": "index.html",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -198,8 +198,21 @@ body.fullscreen-active {
 }
 
 /* AI 코드 어시스턴트 모달 */
-.ai-assistant-content {
-    max-width: 480px;
+.modal-content.ai-assistant-content {
+    display: flex;
+    flex-direction: column;
+    width: 92%;
+    max-width: 860px;
+    height: 88vh;
+    max-height: 860px;
+}
+
+.ai-assistant-content .modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .ai-key-desc {
@@ -233,8 +246,16 @@ body.fullscreen-active {
     color: var(--accent-primary);
 }
 
+#ai-request-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .ai-mode-tabs {
     display: flex;
+    flex-shrink: 0;
     gap: var(--spacing-xs);
     margin-bottom: var(--spacing-md);
 }
@@ -259,11 +280,13 @@ body.fullscreen-active {
 
 .ai-instruction-input {
     width: 100%;
-    min-height: 72px;
+    flex-shrink: 0;
+    min-height: 140px;
     margin-bottom: var(--spacing-md);
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-sm);
-    font-family: inherit;
+    padding: var(--spacing-md);
+    font-size: var(--font-size-md);
+    font-family: var(--font-mono);
+    line-height: 1.6;
     resize: vertical;
 }
 
@@ -271,13 +294,20 @@ body.fullscreen-active {
     display: none;
 }
 
+#btn-ai-submit {
+    flex-shrink: 0;
+}
+
 .ai-response {
-    max-height: 280px;
+    flex: 1;
+    min-height: 200px;
+    max-height: none;
     margin-top: var(--spacing-md);
     padding: var(--spacing-md);
     overflow-y: auto;
-    font-size: var(--font-size-sm);
-    line-height: 1.6;
+    font-size: var(--font-size-md);
+    font-family: var(--font-mono);
+    line-height: 1.7;
     white-space: pre-wrap;
     color: var(--text-primary);
     background-color: var(--bg-secondary);
@@ -286,6 +316,7 @@ body.fullscreen-active {
 }
 
 #btn-ai-apply {
+    flex-shrink: 0;
     margin-top: var(--spacing-md);
 }
 
