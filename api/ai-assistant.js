@@ -1,7 +1,9 @@
-// api/ai-assistant.js - Gemini API 프록시 (Vercel Edge Function)
+// api/ai-assistant.js - Gemini API 프록시 (Vercel Node.js Function)
 // Gemini API 키는 이 서버 코드 안에서만 사용되며 프론트엔드로 절대 노출되지 않음
+// Edge 런타임은 응답 시작까지 25초 하드 리밋이 있어(늘릴 수 없음) 코드 수정처럼
+// 출력이 긴 요청에서 타임아웃(504)이 나 Node.js 런타임으로 전환함
 
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 60 };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -9,6 +11,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 const MAX_CODE_LENGTH = 8000;
+const MAX_INSTRUCTION_LENGTH = 4000;
 
 async function getUserFromToken(token) {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -37,6 +40,7 @@ async function canUseAi(token, email) {
 
 function buildPrompt({ mode, language, code, instruction }) {
     const trimmedCode = (code || '').slice(0, MAX_CODE_LENGTH);
+    instruction = (instruction || '').slice(0, MAX_INSTRUCTION_LENGTH);
 
     if (mode === 'explain') {
         return `다음 ${language} 코드를 한국어로 친절하게 설명해줘.\n\n\`\`\`${language}\n${trimmedCode}\n\`\`\``;

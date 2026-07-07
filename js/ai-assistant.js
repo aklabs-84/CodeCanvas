@@ -10,9 +10,11 @@ const MODE_LABELS = {
 
 const OWN_KEY_STORAGE = 'codecanvas_gemini_api_key';
 const MAX_CODE_LENGTH = 8000;
+const MAX_INSTRUCTION_LENGTH = 4000;
 
 function buildPrompt({ mode, language, code, instruction }) {
     const trimmedCode = (code || '').slice(0, MAX_CODE_LENGTH);
+    instruction = (instruction || '').slice(0, MAX_INSTRUCTION_LENGTH);
 
     if (mode === 'explain') {
         return `다음 ${language} 코드를 한국어로 친절하게 설명해줘.\n\n\`\`\`${language}\n${trimmedCode}\n\`\`\``;
