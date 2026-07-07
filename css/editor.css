@@ -66,6 +66,80 @@
 
 .clear-item-danger .clear-item-desc { color: rgba(231, 76, 60, 0.7); }
 
+/* ── 에디터 탭 선택 드롭다운 ─────────────────────── */
+.tab-dropdown-wrapper {
+    position: relative;
+}
+
+.tab-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.tab-dropdown-btn:hover {
+    background-color: var(--bg-active);
+}
+
+.tab-dropdown-arrow {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+.tab-dropdown-error-dot {
+    display: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--error);
+}
+
+.tab-dropdown-error-dot.visible {
+    display: inline-block;
+}
+
+.tab-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-secondary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 5000;
+    overflow: hidden;
+}
+
+.tab-dropdown-menu.hidden {
+    display: none;
+}
+
+.tab-dropdown-menu .tab-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    border-bottom: none;
+    border-left: 3px solid transparent;
+}
+
+.tab-dropdown-menu .tab-btn.active {
+    color: var(--accent-primary);
+    background-color: var(--bg-hover);
+    border-bottom-color: transparent;
+    border-left-color: var(--accent-primary);
+}
+
 /* ── 통합 탭 가이드 배너 ─────────────────────── */
 .unified-guide-banner {
     display: flex;
@@ -205,4 +279,72 @@
 .snippet-item-desc {
     font-size: var(--font-size-xs);
     color: var(--text-tertiary);
+}
+
+/* CDN 라이브러리 검색 */
+.cdn-search-content {
+    max-width: 480px;
+}
+
+.cdn-search-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.cdn-search-results {
+    max-height: 360px;
+    overflow-y: auto;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.cdn-search-placeholder {
+    padding: var(--spacing-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.cdn-result-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: var(--border-width) solid var(--border-color);
+    width: 100%;
+    transition: background-color var(--transition-fast);
+}
+
+.cdn-result-item:last-child {
+    border-bottom: none;
+}
+
+.cdn-result-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.cdn-result-name {
+    font-weight: 600;
+}
+
+.cdn-result-version {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+.cdn-result-desc {
+    grid-column: 1 / -1;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

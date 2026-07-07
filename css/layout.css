@@ -277,6 +277,66 @@ body.resizing .preview-section {
     background-color: #ffffff;
 }
 
+/* 디바이스 시뮬레이터 */
+.device-switcher {
+    display: flex;
+    gap: 2px;
+    background-color: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    margin-right: var(--spacing-sm);
+}
+
+.btn-device {
+    padding: var(--spacing-xs);
+    min-width: 30px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: background-color var(--transition-fast);
+}
+
+.btn-device:hover {
+    background-color: var(--bg-hover);
+}
+
+.btn-device.active {
+    background-color: var(--accent-primary);
+}
+
+.preview-container.device-mobile,
+.preview-container.device-tablet {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: auto;
+    background-color: var(--bg-secondary);
+    padding: var(--spacing-md) 0;
+}
+
+.preview-container.device-mobile #preview-frame,
+.preview-container.device-tablet #preview-frame {
+    height: 100%;
+    flex-shrink: 0;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.preview-container.device-mobile #preview-frame {
+    width: 375px;
+}
+
+.preview-container.device-tablet #preview-frame {
+    width: 768px;
+}
+
 /* 콘솔 */
 .console-container {
     height: 150px;

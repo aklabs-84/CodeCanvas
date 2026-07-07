@@ -196,3 +196,185 @@ body.fullscreen-active {
 #btn-preview-restore .icon {
     font-size: 18px;
 }
+
+/* AI 코드 어시스턴트 모달 */
+.ai-assistant-content {
+    max-width: 480px;
+}
+
+.ai-key-desc {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--text-tertiary);
+}
+
+.ai-own-key-input {
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.ai-change-key-link {
+    display: block;
+    margin-bottom: var(--spacing-md);
+    padding: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: right;
+    width: 100%;
+}
+
+.ai-change-key-link:hover {
+    color: var(--accent-primary);
+}
+
+.ai-mode-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.ai-mode-btn {
+    flex: 1;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.ai-mode-btn.active {
+    color: #fff;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.ai-instruction-input {
+    width: 100%;
+    min-height: 72px;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    resize: vertical;
+}
+
+.ai-instruction-input.hidden {
+    display: none;
+}
+
+.ai-response {
+    max-height: 280px;
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    overflow-y: auto;
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+#btn-ai-apply {
+    margin-top: var(--spacing-md);
+}
+
+/* 관리자 패널 모달 */
+.admin-panel-content {
+    max-width: 480px;
+}
+
+.admin-panel-desc {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.admin-user-list {
+    max-height: 360px;
+    overflow-y: auto;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.admin-panel-placeholder {
+    padding: var(--spacing-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.admin-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: var(--border-width) solid var(--border-color);
+}
+
+.admin-user-row:last-child {
+    border-bottom: none;
+}
+
+.admin-user-email {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.admin-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.admin-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.admin-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background-color: var(--border-color);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.admin-toggle-slider::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    background-color: #fff;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.admin-toggle-switch input:checked + .admin-toggle-slider {
+    background-color: var(--accent-primary);
+}
+
+.admin-toggle-switch input:checked + .admin-toggle-slider::before {
+    transform: translateX(18px);
+}
+
+.admin-toggle-switch input:disabled + .admin-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

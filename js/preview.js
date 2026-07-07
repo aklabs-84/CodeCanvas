@@ -2,17 +2,21 @@
 
 export const PreviewManager = {
     previewFrame: null,
+    previewContainer: null,
     consoleOutput: null,
     consoleLogs: [],
     currentBlobUrl: null,
     autoRun: false,
     _autoRunTimer: null,
+    device: 'full',
 
     // 초기화
     init() {
         this.previewFrame = document.getElementById('preview-frame');
+        this.previewContainer = document.getElementById('preview-container');
         this.consoleOutput = document.getElementById('console-output');
         this._loadAutoRunPreference();
+        this._loadDevicePreference();
         this.attachEventListeners();
         this.setupConsoleCapture();
     },
@@ -28,6 +32,10 @@ export const PreviewManager = {
 
         const btnAutoRun = document.getElementById('btn-autorun');
         btnAutoRun?.addEventListener('click', () => this.toggleAutoRun());
+
+        document.querySelectorAll('.btn-device').forEach(btn => {
+            btn.addEventListener('click', () => this.setDevice(btn.dataset.device));
+        });
 
         // Ctrl+Enter로 실행
         document.addEventListener('keydown', (e) => {
@@ -83,6 +91,28 @@ export const PreviewManager = {
         requestAnimationFrame(() => this._updateAutoRunButton());
     },
 
+    // 디바이스 시뮬레이터 전환 (full/tablet/mobile)
+    setDevice(device) {
+        this.device = device;
+        localStorage.setItem('codecanvas_device', device);
+
+        if (this.previewContainer) {
+            this.previewContainer.classList.remove('device-mobile', 'device-tablet');
+            if (device === 'mobile') this.previewContainer.classList.add('device-mobile');
+            if (device === 'tablet') this.previewContainer.classList.add('device-tablet');
+        }
+
+        document.querySelectorAll('.btn-device').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.device === device);
+        });
+    },
+
+    // localStorage에서 디바이스 설정 복원
+    _loadDevicePreference() {
+        const saved = localStorage.getItem('codecanvas_device');
+        requestAnimationFrame(() => this.setDevice(saved || 'full'));
+    },
+
     // 코드 실행
     run() {
         const code = window.EditorManager?.getCode();
@@ -101,12 +131,24 @@ export const PreviewManager = {
         document.querySelectorAll('.tab-btn.has-error').forEach(btn => {
             btn.classList.remove('has-error');
         });
+        this._syncDropdownErrorDot();
     },
 
     // 에러 발생 시 해당 언어 탭에 빨간 점 표시
     _markErrorTab(lang) {
         const tab = document.querySelector(`.tab-btn[data-mode="${lang}"]`);
         tab?.classList.add('has-error');
+        this._syncDropdownErrorDot();
+    },
+
+    // 드롭다운에 숨겨진 탭 중 에러가 있으면 닫힌 상태의 드롭다운 버튼에도 작은 점으로 표시
+    _syncDropdownErrorDot() {
+        const dot = document.getElementById('tab-dropdown-error-dot');
+        if (!dot) return;
+        const currentMode = window.EditorManager?.currentMode;
+        const hasHiddenError = Array.from(document.querySelectorAll('.tab-btn.has-error'))
+            .some(btn => btn.dataset.mode !== currentMode);
+        dot.classList.toggle('visible', hasHiddenError);
     },
 
     // 미리보기 렌더링

@@ -56,6 +56,10 @@
             <button id="btn-theme" class="btn btn-secondary" title="테마 전환">
                 <span class="icon">🌙</span>
             </button>
+            <button id="btn-admin-panel" class="btn btn-secondary hidden" title="AI 기능 사용자 관리">
+                <span class="icon">⚙️</span>
+                <span class="text">관리자</span>
+            </button>
             <button id="btn-login" class="btn btn-secondary">
                 <span class="icon">👤</span>
                 <span class="text">로그인</span>
@@ -134,10 +138,19 @@
             <section id="editor-section" class="editor-section">
                 <div class="section-header">
                     <div class="editor-tabs">
-                        <button class="tab-btn active" data-mode="html">HTML</button>
-                        <button class="tab-btn" data-mode="css">CSS</button>
-                        <button class="tab-btn" data-mode="js">JavaScript</button>
-                        <button class="tab-btn" data-mode="unified">통합</button>
+                        <div class="tab-dropdown-wrapper" id="tab-dropdown-wrapper">
+                            <button id="btn-tab-dropdown" class="tab-dropdown-btn">
+                                <span id="tab-dropdown-label">통합</span>
+                                <span class="tab-dropdown-error-dot" id="tab-dropdown-error-dot"></span>
+                                <span class="tab-dropdown-arrow">▾</span>
+                            </button>
+                            <div id="tab-dropdown-menu" class="tab-dropdown-menu hidden">
+                                <button class="tab-btn" data-mode="html">HTML</button>
+                                <button class="tab-btn" data-mode="css">CSS</button>
+                                <button class="tab-btn" data-mode="js">JavaScript</button>
+                                <button class="tab-btn active" data-mode="unified">통합</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="section-controls">
                         <div class="clear-wrapper" id="clear-wrapper">
@@ -168,6 +181,12 @@
                             </button>
                             <div id="snippet-dropdown" class="snippet-dropdown hidden"></div>
                         </div>
+                        <button id="btn-cdn-search" class="btn-icon" title="CDN 라이브러리 검색">
+                            <span class="icon">📦</span>
+                        </button>
+                        <button id="btn-ai-assistant" class="btn-icon hidden" title="AI 코드 어시스턴트">
+                            <span class="icon">🤖</span>
+                        </button>
                         <button id="btn-close-fullscreen-editor" class="btn-icon btn-close-fullscreen-editor" title="전체화면 닫기 (ESC)" style="display: none;">
                             <span class="icon">✕</span>
                         </button>
@@ -204,6 +223,11 @@
                 <div class="section-header">
                     <h3 class="section-title">미리보기</h3>
                     <div class="section-controls">
+                        <div class="device-switcher" id="device-switcher">
+                            <button class="btn-device active" data-device="full" title="전체 너비">🖥</button>
+                            <button class="btn-device" data-device="tablet" title="태블릿 (768px)">📟</button>
+                            <button class="btn-device" data-device="mobile" title="모바일 (375px)">📱</button>
+                        </div>
                         <button id="btn-fullscreen-preview" class="btn-icon" title="전체화면 미리보기 (F11)">
                             <span class="icon">⛶</span>
                         </button>
@@ -212,7 +236,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="preview-container">
+                <div class="preview-container" id="preview-container">
                     <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-modals" allow="geolocation; camera; microphone; clipboard-write"></iframe>
                 </div>
                 <div class="console-container">
@@ -242,6 +266,67 @@
         </div>
     </div>
 
+    <!-- CDN 라이브러리 검색 모달 -->
+    <div id="cdn-search-modal" class="modal hidden">
+        <div class="modal-content cdn-search-content">
+            <div class="modal-header">
+                <h3>CDN 라이브러리 검색</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="cdn-search-input" class="cdn-search-input" placeholder="라이브러리 이름 검색 (예: bootstrap, jquery, chart.js)" autocomplete="off">
+                <div id="cdn-search-results" class="cdn-search-results">
+                    <div class="cdn-search-placeholder">검색어를 입력하세요.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 코드 어시스턴트 모달 -->
+    <div id="ai-assistant-modal" class="modal hidden">
+        <div class="modal-content ai-assistant-content">
+            <div class="modal-header">
+                <h3>🤖 AI 코드 어시스턴트</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="ai-key-setup" class="ai-key-setup hidden">
+                    <p class="ai-key-desc">AI 기능을 사용하려면 본인의 Gemini API 키가 필요합니다. 키는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
+                    <input type="password" id="ai-own-key-input" class="ai-own-key-input" placeholder="Gemini API 키 입력" autocomplete="off">
+                    <button id="btn-ai-save-key" class="btn btn-primary w-100">키 저장하고 시작하기</button>
+                </div>
+                <div id="ai-request-area" class="hidden">
+                    <button id="btn-ai-change-key" class="ai-change-key-link hidden">🔑 내 API 키 변경</button>
+                    <div class="ai-mode-tabs">
+                        <button class="ai-mode-btn active" data-ai-mode="explain">코드 설명</button>
+                        <button class="ai-mode-btn" data-ai-mode="edit">코드 수정</button>
+                        <button class="ai-mode-btn" data-ai-mode="generate">코드 생성</button>
+                    </div>
+                    <textarea id="ai-instruction" class="ai-instruction-input hidden" placeholder="예: 버튼을 파란색으로 바꿔줘"></textarea>
+                    <button id="btn-ai-submit" class="btn btn-primary w-100">현재 코드 설명 요청</button>
+                    <div id="ai-response" class="ai-response hidden"></div>
+                    <button id="btn-ai-apply" class="btn btn-primary w-100 hidden">에디터에 적용하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관리자 패널 모달 -->
+    <div id="admin-panel-modal" class="modal hidden">
+        <div class="modal-content admin-panel-content">
+            <div class="modal-header">
+                <h3>⚙️ AI 기능 사용자 관리</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="admin-panel-desc">AI 코드 어시스턴트를 사용할 수 있는 유저를 지정하세요.</p>
+                <div id="admin-user-list" class="admin-user-list">
+                    <div class="admin-panel-placeholder">불러오는 중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 공유 모달 -->
     <div id="share-modal" class="modal hidden">
         <div class="modal-content">
@@ -267,8 +352,8 @@
             <div class="modal-body">
                 <form id="auth-form">
                     <div class="form-group">
-                        <label for="auth-username">사용자 이름</label>
-                        <input type="text" id="auth-username" required placeholder="아이디를 입력하세요">
+                        <label for="auth-email">이메일</label>
+                        <input type="email" id="auth-email" required placeholder="이메일을 입력하세요">
                     </div>
                     <div class="form-group">
                         <label for="auth-password">비밀번호</label>

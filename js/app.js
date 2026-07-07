@@ -10,6 +10,9 @@ import { ShareManager } from './share.js';
 import { AuthManager } from './auth.js';
 import { DownloadManager } from './download.js';
 import { SnippetManager } from './snippets.js';
+import { CdnSearchManager } from './cdn-search.js';
+import { AiAssistant } from './ai-assistant.js';
+import { AdminPanel } from './admin-panel.js';
 
 // 전역 객체로 등록 (다른 모듈에서 접근 가능하도록)
 window.LayoutManager = LayoutManager;
@@ -22,6 +25,9 @@ window.ShareManager = ShareManager;
 window.AuthManager = AuthManager;
 window.DownloadManager = DownloadManager;
 window.SnippetManager = SnippetManager;
+window.CdnSearchManager = CdnSearchManager;
+window.AiAssistant = AiAssistant;
+window.AdminPanel = AdminPanel;
 
 // 앱 초기화
 async function initApp() {
@@ -56,6 +62,11 @@ async function initApp() {
         ShareManager.init();
         console.log('✅ Share manager initialized');
 
+        // 7-1. AI 어시스턴트 / 관리자 패널 초기화 (인증 상태 콜백을 받으려면 Auth보다 먼저 init 필요)
+        AiAssistant.init();
+        AdminPanel.init();
+        console.log('✅ AI assistant / Admin panel initialized');
+
         // 8. 인증 초기화
         AuthManager.init();
         console.log('✅ Auth initialized');
@@ -67,6 +78,10 @@ async function initApp() {
         // 10. 스니펫 팔레트 초기화
         SnippetManager.init();
         console.log('✅ Snippet manager initialized');
+
+        // 10-1. CDN 라이브러리 검색 초기화
+        CdnSearchManager.init();
+        console.log('✅ CDN search manager initialized');
 
         // 11. 코드 초기화 드롭다운
         const clearWrapper = document.getElementById('clear-wrapper');
@@ -103,6 +118,19 @@ async function initApp() {
             if (!confirm('HTML · CSS · JS 탭 코드를 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) return;
             EditorManager.setCode({ html: '', css: '', js: '' });
             showSuccessNotification('모든 탭 코드가 초기화되었습니다.');
+        });
+
+        // 11-1. 에디터 탭 선택 드롭다운 (HTML/CSS/JS/통합)
+        const tabDropdownWrapper = document.getElementById('tab-dropdown-wrapper');
+        const tabDropdownMenu = document.getElementById('tab-dropdown-menu');
+
+        document.getElementById('btn-tab-dropdown')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tabDropdownMenu?.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!tabDropdownWrapper?.contains(e.target)) tabDropdownMenu?.classList.add('hidden');
         });
 
         // 통합 탭 가이드 배너 토글
@@ -182,26 +210,31 @@ async function initApp() {
 
         authForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const username = document.getElementById('auth-username').value;
+            const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
 
             btnAuthSubmit.disabled = true;
             btnAuthSubmit.textContent = isSignupMode ? '가입 중...' : '로그인 중...';
 
             if (isSignupMode) {
-                const result = await AuthManager.signup(username, password);
+                const result = await AuthManager.signup(email, password);
                 if (result.status === 'success') {
-                    showSuccessNotification('회원가입 성공! 로그인해 주세요.');
-                    isSignupMode = false;
-                    authTitle.textContent = '로그인';
-                    btnAuthSubmit.textContent = '로그인';
+                    if (AuthManager.isAuthenticated) {
+                        showSuccessNotification(`${email}님, 환영합니다!`);
+                        loginModal.classList.add('hidden');
+                    } else {
+                        showSuccessNotification('회원가입 성공! 이메일을 확인한 후 로그인해 주세요.');
+                        isSignupMode = false;
+                        authTitle.textContent = '로그인';
+                        btnAuthSubmit.textContent = '로그인';
+                    }
                 } else {
                     showErrorNotification(result.message);
                 }
             } else {
-                const result = await AuthManager.login(username, password);
+                const result = await AuthManager.login(email, password);
                 if (result.status === 'success') {
-                    showSuccessNotification(`${username}님, 환영합니다!`);
+                    showSuccessNotification(`${email}님, 환영합니다!`);
                     loginModal.classList.add('hidden');
                 } else {
                     showErrorNotification(result.message);

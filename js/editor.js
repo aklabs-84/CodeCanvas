@@ -2,6 +2,8 @@
 
 const MONACO_BASE = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs';
 
+const TAB_LABELS = { html: 'HTML', css: 'CSS', js: 'JavaScript', unified: '통합' };
+
 export const EditorManager = {
     editors: {
         html: null,
@@ -10,7 +12,7 @@ export const EditorManager = {
         unified: null,
     },
 
-    currentMode: 'html',
+    currentMode: 'unified',
     _parsing: false, // 자동 분리 재진입 방지 플래그
 
     code: {
@@ -213,6 +215,12 @@ h1 {
 
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelector(`.tab-btn[data-mode="${mode}"]`)?.classList.add('active');
+
+        // 드롭다운 버튼 라벨 갱신 + 선택 후 자동 닫힘
+        const label = document.getElementById('tab-dropdown-label');
+        if (label) label.textContent = TAB_LABELS[mode] ?? mode;
+        document.getElementById('tab-dropdown-menu')?.classList.add('hidden');
+        window.PreviewManager?._syncDropdownErrorDot?.();
 
         if (mode === 'unified') {
             this._setValue(this.editors.unified, this._getUnifiedCode());
