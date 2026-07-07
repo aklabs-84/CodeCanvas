@@ -189,7 +189,13 @@ export const AiAssistant = {
             },
             body: JSON.stringify(payload),
         });
-        const data = await res.json();
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch {
+            throw new Error(res.ok ? 'AI 응답 형식이 올바르지 않습니다.' : `AI 요청에 실패했습니다 (${res.status}).`);
+        }
         if (!res.ok) throw new Error(data.error || 'AI 요청에 실패했습니다.');
         return data;
     },
@@ -206,7 +212,10 @@ export const AiAssistant = {
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+                }),
             }
         );
 
