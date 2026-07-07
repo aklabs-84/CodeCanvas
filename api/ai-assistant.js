@@ -57,7 +57,7 @@ function extractCode(text) {
     return match ? match[1].trim() : null;
 }
 
-export default async function handler(request) {
+async function handler(request) {
     if (request.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
     }
@@ -107,3 +107,5 @@ export default async function handler(request) {
         headers: { 'Content-Type': 'application/json' },
     });
 }
+
+export default { fetch: handler };
