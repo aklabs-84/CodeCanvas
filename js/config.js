@@ -1,9 +1,13 @@
 // config.js - 전역 설정 관리
 
 export const CONFIG = {
-    // Google Apps Script 웹 앱 URL (배포 후 여기에 붙여넣으세요)
-    GAS_APP_URL: 'https://script.google.com/macros/s/AKfycbziZYbCk75S9ufEZjFsmCDDy_FSjC12ZGaZnV1eoh-OverNjWGqHYx-vfp3_ivAYfQFWw/exec', 
-    
+    // Supabase 프로젝트 설정 (.env.local 참조)
+    SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
+
+    // AI 코드 어시스턴트 관리자 계정 (이 이메일로 로그인하면 항상 AI 기능 사용 가능)
+    ADMIN_EMAIL: 'mosebb@gmail.com',
+
     // 개발 모드 여부
     IS_DEV: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
     

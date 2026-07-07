@@ -1,105 +1,64 @@
-import { CONFIG } from './config.js';
-
-const SESSION_KEY = 'codecanvas_user';
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7일
+import { supabase } from './supabase-client.js';
 
 export const AuthManager = {
     isAuthenticated: false,
     user: null,
 
     init() {
-        console.log('Auth module initialized with GAS backend');
-        this.checkSession();
+        console.log('Auth module initialized with Supabase');
         this.attachEventListeners();
-        this.updateUI();
-    },
 
-    checkSession() {
-        try {
-            const saved = localStorage.getItem(SESSION_KEY);
-            if (!saved) return;
-            const session = JSON.parse(saved);
-            // 만료 확인
-            if (session.expiresAt && Date.now() > session.expiresAt) {
-                localStorage.removeItem(SESSION_KEY);
-                return;
-            }
-            // 신규 형식 { user, expiresAt } 또는 구버전 형식 { username, ... } 모두 지원
-            this.user = session.user || session;
-            this.isAuthenticated = true;
-        } catch {
-            localStorage.removeItem(SESSION_KEY);
-        }
-    },
-
-    saveSession(user) {
-        const session = {
-            user,
-            expiresAt: Date.now() + SESSION_TTL,
-        };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        supabase.auth.onAuthStateChange((event, session) => {
+            this.isAuthenticated = !!session;
+            this.user = session?.user ?? null;
+            this.updateUI();
+            window.ProjectManager?.onAuthChange?.(this.isAuthenticated);
+            window.AiAssistant?.onAuthChange?.(this.isAuthenticated);
+            window.AdminPanel?.onAuthChange?.(this.isAuthenticated);
+        });
     },
 
     attachEventListeners() {
         // 로그인/회원가입 모달 제어 등은 전역에서 처리 (app.js 등)
     },
 
-    async login(username, password) {
-        if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
-
+    async login(email, password) {
         try {
-            const response = await fetch(CONFIG.GAS_APP_URL, {
-                method: 'POST',
-                mode: 'cors',
-                redirect: 'follow',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'login', username, password })
-            });
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) return { status: 'error', message: error.message };
 
-            const data = await response.json();
-            if (data.status === 'success') {
-                this.user = data.user;
-                this.isAuthenticated = true;
-                this.saveSession(this.user);
-                this.updateUI();
-                return { status: 'success' };
-            } else {
-                return { status: 'error', message: data.message };
-            }
+            this.user = data.user;
+            this.isAuthenticated = true;
+            this.updateUI();
+            return { status: 'success' };
         } catch (error) {
             console.error('Login failed:', error);
             return { status: 'error', message: '로그인 중 오류가 발생했습니다.' };
         }
     },
 
-    async signup(username, password) {
-        if (!CONFIG.GAS_APP_URL) return { status: 'error', message: 'API URL이 설정되지 않았습니다.' };
-
+    async signup(email, password) {
         try {
-            const response = await fetch(CONFIG.GAS_APP_URL, {
-                method: 'POST',
-                mode: 'cors',
-                redirect: 'follow',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'signup', username, password })
-            });
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) return { status: 'error', message: error.message };
 
-            const data = await response.json();
-            if (data.status === 'success') {
-                return { status: 'success' };
-            } else {
-                return { status: 'error', message: data.message };
+            // Confirm email이 꺼져 있으면 세션이 바로 발급됨
+            if (data.session) {
+                this.user = data.user;
+                this.isAuthenticated = true;
+                this.updateUI();
             }
+            return { status: 'success' };
         } catch (error) {
             console.error('Signup failed:', error);
             return { status: 'error', message: '회원가입 중 오류가 발생했습니다.' };
         }
     },
 
-    logout() {
+    async logout() {
+        await supabase.auth.signOut();
         this.isAuthenticated = false;
         this.user = null;
-        localStorage.removeItem(SESSION_KEY);
         this.updateUI();
         window.location.reload();
     },
@@ -109,7 +68,7 @@ export const AuthManager = {
         if (!btnLogin) return;
 
         if (this.isAuthenticated && this.user) {
-            btnLogin.innerHTML = `<span>👤 ${this.user.username}</span>`;
+            btnLogin.innerHTML = `<span>👤 ${this.user.email}</span>`;
             btnLogin.title = '클릭하여 로그아웃';
             btnLogin.onclick = (e) => {
                 e.preventDefault();

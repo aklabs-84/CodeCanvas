@@ -57,7 +57,7 @@ export const ShareManager = {
             shareLinkInput.value = fullLink;
             if (btnCopyLink) btnCopyLink.disabled = false;
         } else if (shareLinkInput) {
-            shareLinkInput.value = '공유 실패 (GAS URL 설정을 확인하세요)';
+            shareLinkInput.value = '공유 실패 (로그인 상태를 확인하세요)';
         }
     },
 

@@ -1,5 +1,7 @@
-// projects.js - 프로젝트 CRUD 관리 (확장 버전)
-import { CONFIG } from './config.js';
+// projects.js - 프로젝트 CRUD 관리 (Supabase 기반)
+import { supabase } from './supabase-client.js';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const ProjectManager = {
     currentProject: null,
@@ -15,22 +17,61 @@ export const ProjectManager = {
         this.renderProjectList();
     },
 
-    // 모든 프로젝트 로드
+    // 로그인 상태 변화 시 auth.js에서 호출
+    async onAuthChange(isAuthenticated) {
+        if (isAuthenticated) {
+            await this.migrateLocalProjectsToCloud();
+            await this.loadAllProjectsFromCloud();
+        } else {
+            this.loadAllProjects();
+        }
+        this.renderProjectList();
+    },
+
+    _isCloudId(id) {
+        return UUID_RE.test(id || '');
+    },
+
+    _fromRow(row) {
+        return {
+            id: row.id,
+            title: row.title,
+            code: { html: row.html ?? '', css: row.css ?? '', js: row.js ?? '' },
+            isPublic: row.is_public,
+            shareId: row.shared_id,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        };
+    },
+
+    // 모든 프로젝트 로드 (localStorage 캐시)
     loadAllProjects() {
         try {
             const saved = localStorage.getItem('codecanvas_all_projects');
-            if (saved) {
-                this.allProjects = JSON.parse(saved);
-            } else {
-                this.allProjects = [];
-            }
+            this.allProjects = saved ? JSON.parse(saved) : [];
         } catch (error) {
             console.error('Failed to load all projects:', error);
             this.allProjects = [];
         }
     },
 
-    // 모든 프로젝트 저장
+    // 클라우드에서 프로젝트 목록 로드 (로그인 상태)
+    async loadAllProjectsFromCloud() {
+        try {
+            const { data, error } = await supabase
+                .from('projects')
+                .select('*')
+                .order('updated_at', { ascending: false });
+            if (error) throw error;
+
+            this.allProjects = data.map(row => this._fromRow(row));
+            this.saveAllProjects();
+        } catch (error) {
+            console.error('클라우드 프로젝트 목록 로드 실패:', error);
+        }
+    },
+
+    // 모든 프로젝트 저장 (localStorage 캐시)
     saveAllProjects() {
         try {
             localStorage.setItem('codecanvas_all_projects', JSON.stringify(this.allProjects));
@@ -39,21 +80,65 @@ export const ProjectManager = {
         }
     },
 
+    // localStorage에만 있던(비-UUID) 게스트 프로젝트를 로그인 시 클라우드로 이전
+    async migrateLocalProjectsToCloud() {
+        if (!window.AuthManager?.isAuthenticated || !window.AuthManager.user) return;
+
+        const localOnly = this.allProjects.filter(p => !this._isCloudId(p.id));
+        if (localOnly.length === 0) return;
+
+        let migratedCount = 0;
+        for (const project of localOnly) {
+            const oldId = project.id;
+            const newId = crypto.randomUUID();
+
+            const { error } = await supabase.from('projects').insert({
+                id: newId,
+                user_id: window.AuthManager.user.id,
+                title: project.title,
+                html: project.code?.html ?? '',
+                css: project.code?.css ?? '',
+                js: project.code?.js ?? '',
+                is_public: project.isPublic ?? false,
+                shared_id: project.shareId ?? null,
+                created_at: project.createdAt,
+                updated_at: project.updatedAt,
+            });
+
+            if (error) {
+                console.error('프로젝트 마이그레이션 실패:', project.title, error);
+                continue;
+            }
+
+            project.id = newId;
+            migratedCount++;
+            if (this.currentProject?.id === oldId) {
+                this.currentProject.id = newId;
+            }
+        }
+
+        this.saveAllProjects();
+        if (this.currentProject) {
+            localStorage.setItem('codecanvas_current_project', JSON.stringify(this.currentProject));
+        }
+
+        if (migratedCount > 0 && window.showSuccessNotification) {
+            window.showSuccessNotification(`기존 프로젝트 ${migratedCount}개를 클라우드로 이전했습니다.`);
+        }
+    },
+
     // 이벤트 리스너 연결
     attachEventListeners() {
-        // 프로젝트 제목 변경 감지
         const projectTitle = document.getElementById('project-title');
         projectTitle?.addEventListener('input', () => {
             this.triggerAutoSave();
         });
 
-        // 프로젝트 검색
         const searchInput = document.getElementById('project-search');
         searchInput?.addEventListener('input', () => {
             this.renderProjectList();
         });
 
-        // 프로젝트 정렬
         const sortSelect = document.getElementById('project-sort');
         sortSelect?.addEventListener('change', () => {
             this.renderProjectList();
@@ -70,7 +155,6 @@ export const ProjectManager = {
                 this.loadProjectToEditor();
                 this.updateSaveStatus('saved');
             } else {
-                // 저장된 프로젝트가 있으면 첫 번째 프로젝트 로드
                 if (this.allProjects.length > 0) {
                     this.loadProject(this.allProjects[0].id);
                 } else {
@@ -85,23 +169,20 @@ export const ProjectManager = {
 
     // 새 프로젝트 생성
     createNewProject() {
+        const isCloud = !!window.AuthManager?.isAuthenticated;
+
         this.currentProject = {
-            id: this.generateId(),
+            id: isCloud ? crypto.randomUUID() : this.generateId(),
             title: '새 프로젝트',
-            description: '',
-            category: '',
-            tags: [],
             code: {
                 html: '<!DOCTYPE html>\n<html lang="ko">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    <h1>Hello, CodeCanvas!</h1>\n</body>\n</html>',
                 css: 'body {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n}\n\nh1 {\n    color: #333;\n}',
                 js: 'console.log("Hello, CodeCanvas!");',
             },
-            thumbnail: null,
             isPublic: false,
             shareId: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            version: 1,
         };
 
         this.hasUnsavedChanges = false;
@@ -130,7 +211,6 @@ export const ProjectManager = {
     saveCurrentProject(silent = false) {
         try {
             if (this.currentProject) {
-                // 에디터에서 현재 코드 가져오기
                 if (window.EditorManager) {
                     this.currentProject.code = window.EditorManager.getCode();
                 }
@@ -142,25 +222,24 @@ export const ProjectManager = {
 
                 this.currentProject.updatedAt = new Date().toISOString();
 
-                // 만약 공유 링크로 불러온 프로젝트라면, 저장 시 새로운 ID를 부여하여 '포크(복제)' 처리
+                // 공유 링크로 불러온 프로젝트라면, 저장 시 새로운 ID를 부여하여 '포크(복제)' 처리
                 if (this.isSharedLoad) {
                     const oldId = this.currentProject.id;
-                    this.currentProject.id = this.generateId();
+                    this.currentProject.id = window.AuthManager?.isAuthenticated ? crypto.randomUUID() : this.generateId();
                     this.currentProject.title = (this.currentProject.title || '새 프로젝트') + ' (복사본)';
-                    this.isSharedLoad = false; // 이제 내 프로젝트가 됨
-                    
+                    this.currentProject.isPublic = false;
+                    this.currentProject.shareId = null;
+                    this.isSharedLoad = false;
+
                     console.log(`Project forked: ${oldId} -> ${this.currentProject.id}`);
-                    
-                    // URL 파라미터 제거 (선택 사항: 새로고침 시 원본으로 돌아가지 않도록)
+
                     if (window.history.replaceState) {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
                 }
 
-                // 현재 프로젝트 저장
                 localStorage.setItem('codecanvas_current_project', JSON.stringify(this.currentProject));
 
-                // 전체 프로젝트 목록에서 업데이트 또는 추가
                 const index = this.allProjects.findIndex(p => p.id === this.currentProject.id);
                 if (index >= 0) {
                     this.allProjects[index] = { ...this.currentProject };
@@ -174,6 +253,10 @@ export const ProjectManager = {
                 this.hasUnsavedChanges = false;
                 this.updateSaveStatus('saved');
 
+                if (window.AuthManager?.isAuthenticated) {
+                    this.pushToCloud(this.currentProject);
+                }
+
                 if (window.showSuccessNotification && !silent) {
                     window.showSuccessNotification('프로젝트가 저장되었습니다.');
                 }
@@ -184,6 +267,30 @@ export const ProjectManager = {
             if (window.showErrorNotification) {
                 window.showErrorNotification('저장에 실패했습니다.');
             }
+        }
+    },
+
+    // 프로젝트를 Supabase에 upsert
+    async pushToCloud(project) {
+        if (!window.AuthManager?.isAuthenticated || !window.AuthManager.user) return false;
+
+        try {
+            const { error } = await supabase.from('projects').upsert({
+                id: project.id,
+                user_id: window.AuthManager.user.id,
+                title: project.title,
+                html: project.code?.html ?? '',
+                css: project.code?.css ?? '',
+                js: project.code?.js ?? '',
+                is_public: project.isPublic ?? false,
+                shared_id: project.shareId ?? null,
+                updated_at: project.updatedAt,
+            });
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('클라우드 저장 실패:', error);
+            return false;
         }
     },
 
@@ -208,7 +315,12 @@ export const ProjectManager = {
             this.saveAllProjects();
             this.renderProjectList();
 
-            // 삭제한 프로젝트가 현재 프로젝트인 경우
+            if (window.AuthManager?.isAuthenticated && this._isCloudId(projectId)) {
+                supabase.from('projects').delete().eq('id', projectId).then(({ error }) => {
+                    if (error) console.error('클라우드 삭제 실패:', error);
+                });
+            }
+
             if (this.currentProject && this.currentProject.id === projectId) {
                 if (this.allProjects.length > 0) {
                     this.loadProject(this.allProjects[0].id);
@@ -228,21 +340,18 @@ export const ProjectManager = {
         const projectList = document.getElementById('project-list');
         if (!projectList) return;
 
-        // 기존 항목 제거 (새 프로젝트 버튼은 유지)
         projectList.querySelectorAll('.project-item').forEach(item => item.remove());
 
-        // 검색어 필터
         const searchQuery = (document.getElementById('project-search')?.value || '').toLowerCase().trim();
         let filtered = searchQuery
             ? this.allProjects.filter(p => (p.title || '').toLowerCase().includes(searchQuery))
             : [...this.allProjects];
 
-        // 정렬
         const sortKey = document.getElementById('project-sort')?.value || 'modified';
         filtered.sort((a, b) => {
             if (sortKey === 'name') return (a.title || '').localeCompare(b.title || '', 'ko');
             if (sortKey === 'created') return new Date(b.createdAt) - new Date(a.createdAt);
-            return new Date(b.updatedAt) - new Date(a.updatedAt); // modified (기본)
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
         });
 
         if (filtered.length === 0) {
@@ -303,7 +412,6 @@ export const ProjectManager = {
         item.appendChild(info);
         item.appendChild(actions);
 
-        // 클릭 이벤트
         item.onclick = () => {
             this.loadProject(project.id);
         };
@@ -363,91 +471,65 @@ export const ProjectManager = {
         }
     },
 
-    // ID 생성
+    // ID 생성 (게스트/로컬 전용 프로젝트)
     generateId() {
         return 'proj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     },
 
-    // --- 클라우드 연동 기능 (Google Sheets / GAS) ---
+    // --- 공유 기능 (Supabase) ---
 
-    // 프로젝트를 클라우드에 저장
+    // 프로젝트를 공개로 전환하고 클라우드에 저장 (공유 링크 생성용)
     async saveToCloud(project = this.currentProject) {
         if (!project) return null;
-        if (!CONFIG.GAS_APP_URL) {
-            console.warn('GAS_APP_URL이 설정되지 않았습니다. config.js를 확인하세요.');
+
+        if (!window.AuthManager?.isAuthenticated) {
+            if (window.showErrorNotification) {
+                window.showErrorNotification('공유하려면 먼저 로그인해주세요.');
+            }
             return null;
         }
 
-        try {
-            // 에디터 최신 상태를 currentProject에 반영 (로컬 저장 없이 — 호출 전 이미 저장됨)
-            if (window.EditorManager && this.currentProject) {
-                this.currentProject.code = window.EditorManager.getCode();
-                const titleInput = document.getElementById('project-title');
-                if (titleInput) this.currentProject.title = titleInput.value || this.currentProject.title;
-            }
+        if (window.EditorManager) {
+            project.code = window.EditorManager.getCode();
+            const titleInput = document.getElementById('project-title');
+            if (titleInput) project.title = titleInput.value || project.title;
+        }
 
-            // 최신화된 데이터로 재할당
-            if (project === null || project === undefined) {
-                project = this.currentProject;
-            }
+        project.isPublic = true;
+        if (!project.shareId) project.shareId = this.generateId();
+        project.updatedAt = new Date().toISOString();
 
-            this.updateSaveStatus('saving');
-            
-            // 저장할 데이터 준비
-            const payload = {
-                action: 'save',
-                id: project.id,
-                title: project.title,
-                code: project.code,
-                updatedAt: new Date().toISOString(),
-                author: (window.AuthManager && window.AuthManager.user) ? window.AuthManager.user.username : 'Guest'
-            };
-
-            const response = await fetch(CONFIG.GAS_APP_URL, {
-                method: 'POST',
-                mode: 'cors', // 단순 요청(Simple Request)을 통해 CORS OPTIONS를 피하고 302 리다이렉트 응답을 안전히 파싱
-                redirect: 'follow',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8',
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            if (data && data.status === 'success') {
-                console.log('Project sync successful:', data.id);
-                this.updateSaveStatus('saved');
-                return data.id;
-            } else {
-                throw new Error(data.message || '클라우드 저장 응답 오류');
-            }
-        } catch (error) {
-            console.error('Failed to sync to cloud:', error);
+        this.updateSaveStatus('saving');
+        const ok = await this.pushToCloud(project);
+        if (!ok) {
             this.updateSaveStatus('error');
             return null;
         }
+
+        localStorage.setItem('codecanvas_current_project', JSON.stringify(project));
+        const index = this.allProjects.findIndex(p => p.id === project.id);
+        if (index >= 0) this.allProjects[index] = { ...project };
+        else this.allProjects.unshift(project);
+        this.saveAllProjects();
+
+        this.updateSaveStatus('saved');
+        return project.id;
     },
 
-    // 클라우드에서 프로젝트 로드
+    // 공유 링크로 프로젝트 로드 (로그인 불필요, 공개 프로젝트만)
     async loadFromCloud(projectId) {
-        if (!CONFIG.GAS_APP_URL) return null;
-
         try {
-            const url = `${CONFIG.GAS_APP_URL}?action=get&id=${projectId}`;
-            const response = await fetch(url, {
-                method: 'GET',
-                redirect: 'follow'
-            });
+            const { data, error } = await supabase
+                .from('projects')
+                .select('*')
+                .eq('id', projectId)
+                .eq('is_public', true)
+                .single();
 
-            if (!response.ok) throw new Error('Network response was not ok');
-            
-            const data = await response.json();
-            if (data && data.status === 'success') {
-                return data.project;
-            }
-            return null;
+            if (error || !data) return null;
+            return this._fromRow(data);
         } catch (error) {
-            console.error('Failed to load from cloud:', error);
+            console.error('공유 프로젝트 로드 실패:', error);
             return null;
         }
     },
