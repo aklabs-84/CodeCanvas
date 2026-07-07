@@ -269,8 +269,7 @@ body.resizing .preview-section {
     display: none;
 }
 
-#preview-frame,
-#fullscreen-frame {
+#preview-frame {
     width: 100%;
     height: 100%;
     border: none;

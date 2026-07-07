@@ -208,7 +208,7 @@ export const ProjectManager = {
     },
 
     // 현재 프로젝트 저장
-    saveCurrentProject(silent = false) {
+    async saveCurrentProject(silent = false) {
         try {
             if (this.currentProject) {
                 if (window.EditorManager) {
@@ -249,13 +249,20 @@ export const ProjectManager = {
 
                 this.saveAllProjects();
                 this.renderProjectList();
-
                 this.hasUnsavedChanges = false;
-                this.updateSaveStatus('saved');
 
                 if (window.AuthManager?.isAuthenticated) {
-                    this.pushToCloud(this.currentProject);
+                    const ok = await this.pushToCloud(this.currentProject);
+                    if (!ok) {
+                        this.updateSaveStatus('error');
+                        if (window.showErrorNotification) {
+                            window.showErrorNotification('클라우드 저장에 실패했습니다. (기기에는 저장됨)');
+                        }
+                        return;
+                    }
                 }
+
+                this.updateSaveStatus('saved');
 
                 if (window.showSuccessNotification && !silent) {
                     window.showSuccessNotification('프로젝트가 저장되었습니다.');

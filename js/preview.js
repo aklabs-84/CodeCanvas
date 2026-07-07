@@ -158,12 +158,8 @@ export const PreviewManager = {
         try {
             if (this.previewFrame) {
                 // srcdoc 방식으로 회귀 (Blob URL 보안 문제 회피)
+                // 전체화면 모드에서는 이 iframe 자체가 전체화면 컨테이너로 옮겨져 표시되므로 별도 동기화가 필요 없음
                 this.previewFrame.srcdoc = combinedHTML;
-            }
-
-            // LayoutManager의 updatePreview 호출 (전체화면 동기화)
-            if (window.LayoutManager) {
-                window.LayoutManager.updatePreview(combinedHTML);
             }
         } catch (error) {
             this.logError('Failed to render preview: ' + error.message);

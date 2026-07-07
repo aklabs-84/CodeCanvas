@@ -37,7 +37,6 @@ export const LayoutManager = {
             btnConsoleRestore: null,
             consoleContainer: null,
         previewFrame: null,
-        fullscreenFrame: null,
     },
 
     // 초기화
@@ -78,7 +77,6 @@ export const LayoutManager = {
             consoleContainer: document.querySelector('.console-container'),
             previewContainer: document.querySelector('.preview-container'),
             previewFrame: document.getElementById('preview-frame'),
-            fullscreenFrame: document.getElementById('fullscreen-frame'),
             dragOverlay: document.getElementById('drag-overlay'),
         };
     },
@@ -402,22 +400,30 @@ export const LayoutManager = {
     // 전체화면 미리보기 열기
     openFullscreenPreview() {
         this.state.fullscreenPreview = true;
+        this.applyState(); // 오버레이를 먼저 표시해야 헤더 높이를 정확히 측정할 수 있음
 
-        // 현재 미리보기 내용을 전체화면으로 복사
-        if (this.elements.previewFrame && this.elements.fullscreenFrame) {
-            const currentSrcdoc = this.elements.previewFrame.srcdoc || this.elements.previewFrame.getAttribute('srcdoc');
-            if (currentSrcdoc) {
-                this.elements.fullscreenFrame.srcdoc = currentSrcdoc;
-            }
+        // iframe을 DOM에서 옮기면 새로고침되어 실행 상태(변수·타이머 등)가 사라지므로,
+        // 이동시키지 않고 고정 위치(position: fixed)로 화면 전체를 덮도록 확장만 한다.
+        if (this.elements.previewFrame) {
+            const header = this.elements.fullscreenOverlay?.querySelector('.fullscreen-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            this.elements.previewFrame.classList.add('fullscreen-preview-frame');
+            this.elements.previewFrame.style.top = `${headerHeight}px`;
+            this.elements.previewFrame.style.height = `calc(100vh - ${headerHeight}px)`;
         }
 
-        this.applyState();
         document.body.classList.add('fullscreen-active');
     },
 
     // 전체화면 미리보기 닫기
     closeFullscreenPreview() {
         this.state.fullscreenPreview = false;
+
+        if (this.elements.previewFrame) {
+            this.elements.previewFrame.classList.remove('fullscreen-preview-frame');
+            this.elements.previewFrame.style.top = '';
+            this.elements.previewFrame.style.height = '';
+        }
 
         // 전체화면을 닫을 때 미리보기가 접혀있으면 자동으로 펼치기
         if (this.state.previewCollapsed) {
@@ -688,19 +694,6 @@ export const LayoutManager = {
         };
         this.applyState();
         this.saveToLocalStorage();
-    },
-
-    // 미리보기 내용 업데이트
-    updatePreview(html) {
-        // 메인 프레임 업데이트
-        if (this.elements.previewFrame) {
-            this.elements.previewFrame.srcdoc = html;
-        }
-
-        // 전체화면이 열려있으면 전체화면 프레임도 업데이트
-        if (this.elements.fullscreenFrame) {
-            this.elements.fullscreenFrame.srcdoc = html;
-        }
     },
 
     // 버튼 상태 업데이트
