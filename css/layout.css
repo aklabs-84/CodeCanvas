@@ -391,6 +391,15 @@ body.view-mode .section-header {
     display: none !important;
 }
 
+body.view-mode .app-container {
+    /* app-container는 기본적으로 헤더 높이(--header-height)만큼 뺀 높이인데,
+       뷰모드에서는 헤더가 display:none이라 이 여백이 필요 없다.
+       이 규칙이 없으면 아래 .main-content(100vh)가 부모(app-container)보다
+       커져서 부모의 overflow:hidden에 하단 콘텐츠(하단 네비 등)가 잘려 보이지 않는다. */
+    height: 100vh !important;
+    height: 100dvh !important;
+}
+
 body.view-mode .main-content {
     margin: 0 !important;
     padding: 0 !important;
