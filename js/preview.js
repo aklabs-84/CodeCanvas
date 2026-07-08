@@ -282,6 +282,10 @@ export const PreviewManager = {
         }
 
         // body 일부만 작성된 경우
+        // 통합(unified) 탭에서 파싱될 때 body 태그 자체의 속성(class="flex justify-center" 등)은
+        // editor.js가 <!--cc-body:...--> 마커 주석으로 앞에 붙여 보존해두므로, 여기서 복원해서 적용
+        const { attrs: bodyAttrs, rest: bodyContent } = this._stripBodyMarker(html);
+
         return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -291,11 +295,17 @@ ${consoleCapture}
 ${smartInjections}
 ${cssTag}
 </head>
-<body>
-${html}
+<body${bodyAttrs ? ' ' + bodyAttrs : ''}>
+${bodyContent}
 ${jsTag}
 </body>
 </html>`;
+    },
+
+    _stripBodyMarker(html) {
+        const m = /^<!--cc-body:([^>]*)-->\n?/.exec(html);
+        if (!m) return { attrs: '', rest: html };
+        return { attrs: m[1], rest: html.slice(m[0].length) };
     },
 
     // 콘솔 캡처 설정

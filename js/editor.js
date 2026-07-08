@@ -241,10 +241,24 @@ h1 {
         this.editors[mode]?.layout();
     },
 
+    // 원본 <body class="..."> 등 body 태그 자체의 속성 문자열 추출 (내용물이 아닌 태그 속성)
+    _bodyAttrsOf(bodyEl) {
+        const m = /^<body([^>]*)>/i.exec(bodyEl.outerHTML);
+        return m ? m[1].trim() : '';
+    },
+
+    // body 속성은 DB 스키마 변경 없이 html 필드 맨 앞에 마커 주석으로 함께 저장/복원
+    _stripBodyMarker(html) {
+        const m = /^<!--cc-body:([^>]*)-->\n?/.exec(html);
+        if (!m) return { attrs: '', rest: html };
+        return { attrs: m[1], rest: html.slice(m[0].length) };
+    },
+
     _getUnifiedCode() {
         let bodyOnly = this.code.html;
         const trimmed = bodyOnly.trim();
         let headExternalTags = ''; // head의 외부 CDN 스크립트/스타일시트
+        let bodyAttrs = '';
 
         // full document인 경우 DOMParser로 body 내용만 추출 + head의 외부 리소스 보존
         if (/^<!doctype/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
@@ -254,6 +268,7 @@ h1 {
                 doc.head.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
                     headExternalTags += '\n    ' + el.outerHTML;
                 });
+                bodyAttrs = this._bodyAttrsOf(doc.body);
                 bodyOnly = doc.body.innerHTML.trim();
             } catch {
                 bodyOnly = bodyOnly
@@ -261,6 +276,10 @@ h1 {
                     .replace(/<\/body>[\s\S]*<\/html>/gi, '')
                     .trim();
             }
+        } else {
+            const split = this._stripBodyMarker(bodyOnly);
+            bodyAttrs = split.attrs;
+            bodyOnly = split.rest;
         }
 
         return `<!DOCTYPE html>
@@ -273,7 +292,7 @@ h1 {
 ${this.code.css}
     </style>
 </head>
-<body>
+<body${bodyAttrs ? ' ' + bodyAttrs : ''}>
 ${bodyOnly}
     <script>
 ${this.code.js}
@@ -308,7 +327,12 @@ ${this.code.js}
                 headScripts += el.outerHTML + '\n';
             });
 
-            this.code.html = (headScripts ? headScripts + '\n' : '') + doc.body.innerHTML.trim();
+            // body 태그 자체의 속성(class="flex justify-center" 등)은 innerHTML에 포함되지 않으므로
+            // 마커 주석으로 별도 보존 (그렇지 않으면 중앙 정렬 등 body 레벨 스타일이 유실됨)
+            const bodyAttrs = this._bodyAttrsOf(doc.body);
+            const marker = bodyAttrs ? `<!--cc-body:${bodyAttrs}-->\n` : '';
+
+            this.code.html = marker + (headScripts ? headScripts + '\n' : '') + doc.body.innerHTML.trim();
             this.code.css  = css.trim();
             this.code.js   = js.trim();
         } catch (e) {
