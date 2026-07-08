@@ -17,12 +17,53 @@
     }
 
     .project-title-input {
-        max-width: 200px;
-        min-width: 50px;
+        max-width: 240px;
+        min-width: 120px; /* 저장/실행 외 버튼들이 더보기 메뉴로 접혀 여유가 생겨 이름이 덜 잘리도록 */
     }
 
     .app-logo {
         font-size: var(--font-size-lg);
+    }
+
+    /* 자동/다운로드/공유/레이아웃/테마/로그인 버튼을 "⋯ 더보기" 드롭다운으로 접기 */
+    .btn-more-toggle {
+        display: inline-flex;
+    }
+
+    .header-more {
+        display: inline-flex;
+        position: relative;
+    }
+
+    .header-more-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        min-width: 170px;
+        padding: var(--spacing-xs);
+        background-color: var(--bg-secondary);
+        border: var(--border-width) solid var(--border-color);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        z-index: 1100;
+    }
+
+    .header-more-panel.open {
+        display: flex;
+    }
+
+    .header-more-panel .btn {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    /* 드롭다운 안에서는 세로로 나열되어 공간이 넉넉하므로 라벨을 다시 보여준다 */
+    .header-more-panel .btn .text {
+        display: inline;
     }
 }
 

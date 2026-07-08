@@ -133,6 +133,33 @@ async function initApp() {
             if (!tabDropdownWrapper?.contains(e.target)) tabDropdownMenu?.classList.add('hidden');
         });
 
+        // 11-2. 헤더 "⋯ 더보기" 드롭다운 (좁은 화면에서 자동/다운로드/공유/레이아웃/테마/로그인 묶음)
+        const headerMoreWrapper = document.getElementById('header-more');
+        const headerMoreToggle = document.getElementById('btn-more-toggle');
+        const headerMorePanel = document.getElementById('header-more-panel');
+
+        const closeHeaderMoreMenu = () => {
+            headerMorePanel?.classList.remove('open');
+            headerMoreToggle?.setAttribute('aria-expanded', 'false');
+        };
+
+        headerMoreToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = headerMorePanel?.classList.toggle('open');
+            headerMoreToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!headerMoreWrapper?.contains(e.target)) closeHeaderMoreMenu();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeHeaderMoreMenu();
+        });
+
+        // 더보기 메뉴 안의 버튼을 누르면 메뉴를 닫는다
+        headerMorePanel?.addEventListener('click', () => closeHeaderMoreMenu());
+
         // 통합 탭 가이드 배너 토글
         const guideBanner = document.getElementById('unified-guide-banner');
         let guideDismissed = false;

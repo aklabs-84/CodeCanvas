@@ -47,6 +47,17 @@
     font-weight: 500;
 }
 
+/* 헤더 우측 "더보기" 메뉴: 넓은 화면에서는 기존과 동일하게 버튼들이
+   header-right에 일렬로 나열되도록 박스를 만들지 않는다(display:contents). */
+.header-more,
+.header-more-panel {
+    display: contents;
+}
+
+.btn-more-toggle {
+    display: none;
+}
+
 .save-status {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);

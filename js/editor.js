@@ -181,6 +181,10 @@ h1 {
     },
 
     _handleCodeChange(mode, value) {
+        // setCode()로 프로젝트를 불러오는 중 발생하는 change 이벤트는
+        // 사용자 편집이 아니므로 자동저장/자동실행/히스토리 기록을 건너뛴다.
+        if (this._loadingCode) return;
+
         this._scheduleHistorySnapshot();
 
         if (mode === 'unified') {
@@ -487,6 +491,8 @@ ${this.code.js}
     },
 
     setCode({ html, css, js }) {
+        this._loadingCode = true;
+
         this.code.html = html || '';
         this.code.css  = css  || '';
         this.code.js   = js   || '';
@@ -496,6 +502,8 @@ ${this.code.js}
         this._setValue(this.editors.js,      this.code.js);
         this._setValue(this.editors.unified, this._getUnifiedCode());
         this._resetHistory();
+
+        this._loadingCode = false;
     },
 
     applyTheme() {
