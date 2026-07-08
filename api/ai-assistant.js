@@ -88,7 +88,7 @@ async function handler(request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+                generationConfig: { thinkingConfig: { thinkingBudget: 0 }, maxOutputTokens: 65536 },
             }),
         }
     );
@@ -99,7 +99,14 @@ async function handler(request) {
     }
 
     const geminiData = await geminiRes.json();
-    const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const candidate = geminiData?.candidates?.[0];
+    if (candidate?.finishReason === 'MAX_TOKENS') {
+        return new Response(
+            JSON.stringify({ error: '응답이 너무 길어 중간에 잘렸습니다. 요청 범위를 좁히거나 코드를 나눠서 다시 시도해주세요.' }),
+            { status: 502 }
+        );
+    }
+    const text = candidate?.content?.parts?.[0]?.text || '';
     const code = body.mode !== 'explain' ? extractCode(text) : null;
 
     return new Response(JSON.stringify({ text, code }), {
