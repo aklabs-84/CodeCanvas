@@ -11,12 +11,14 @@
         padding: 0 var(--spacing-sm);
     }
 
-    .header-right .btn .text {
+    .header-right .btn .text,
+    .header-left .btn .text {
         display: none;
     }
 
     .project-title-input {
         max-width: 200px;
+        min-width: 50px;
     }
 
     .app-logo {

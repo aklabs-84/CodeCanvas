@@ -68,7 +68,7 @@ export const AuthManager = {
         if (!btnLogin) return;
 
         if (this.isAuthenticated && this.user) {
-            btnLogin.innerHTML = `<span>👤 ${this.user.email}</span>`;
+            btnLogin.innerHTML = `<span class="icon">👤</span><span class="text">${this.user.email}</span>`;
             btnLogin.title = '클릭하여 로그아웃';
             btnLogin.onclick = (e) => {
                 e.preventDefault();
@@ -77,7 +77,7 @@ export const AuthManager = {
                 }
             };
         } else {
-            btnLogin.innerHTML = '👤 로그인';
+            btnLogin.innerHTML = '<span class="icon">👤</span><span class="text">로그인</span>';
             btnLogin.title = '로그인 또는 회원가입';
             // 모달 열기 로직은 app.js에서 처리하도록 함
         }

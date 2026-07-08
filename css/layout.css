@@ -41,6 +41,7 @@
 
 .project-title-input {
     flex: 1;
+    min-width: 0; /* input의 기본 min-width:auto 때문에 좁은 화면에서 header-center를 침범하며 겹쳐 보이는 문제 방지 */
     max-width: 300px;
     font-size: var(--font-size-md);
     font-weight: 500;
