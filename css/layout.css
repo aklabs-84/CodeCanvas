@@ -395,17 +395,21 @@ body.view-mode .main-content {
     margin: 0 !important;
     padding: 0 !important;
     height: 100vh !important;
+    height: 100dvh !important; /* 모바일 주소창 접힘/펼침에 따른 100vh 오차 보정 (구형 브라우저는 위 100vh로 폴백) */
     width: 100vw !important;
     display: block !important;
 }
 
 body.view-mode .preview-section {
     height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 body.view-mode .preview-container {
     height: 100vh;
+    height: 100dvh;
 }
 
 /* 편집 모드로 전환하기 위한 작은 플로팅 버튼 (옵션) */
