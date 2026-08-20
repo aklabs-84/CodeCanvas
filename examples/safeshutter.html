@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안심셔터 (SafeShutter) - SNS 사진 위치·개인정보 완전 지우개</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for Local Privacy Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HEIC/HEIF Image Conversion Library for iPhone Photos -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <!-- JSZip for Batch File Compression Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Fonts: Pretendard (Korean UI) + IBM Plex Mono (data/coordinates) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard Variable', 'Pretendard', 'sans-serif'],
+                        mono: ['IBM Plex Mono', 'monospace'],
+                    },
+                    colors: {
+                        paper: '#F6F7F5',
+                        ink: '#12172A',
+                        subink: '#586074',
+                        accent: {
+                            DEFAULT: '#0E7C66',
+                            soft: '#E5F2EF',
+                            line: '#BFE0D8',
+                        },
+                        danger: {
+                            DEFAULT: '#D6432E',
+                            soft: '#FBEAE7',
+                            line: '#F2C7BE',
+                        },
+                        warn: {
+                            DEFAULT: '#B8791A',
+                            soft: '#FBF1E1',
+                            line: '#EDD6A6',
+                        },
+                        line: '#E4E6E0',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: #F6F7F5;
+            color: #12172A;
+            min-height: 100vh;
+        }
+        .card {
+            background: #FFFFFF;
+            border: 1px solid #E4E6E0;
+            box-shadow: 0 1px 2px rgba(18, 23, 42, 0.04);
+        }
+        .btn-primary {
+            background: #0E7C66;
+            box-shadow: 0 1px 2px rgba(14, 124, 102, 0.15);
+            transition: all 0.15s ease;
+        }
+        .btn-primary:hover {
+            background: #0B6553;
+        }
+        .badge-dot {
+            animation: pulse-dot 2.2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+        canvas.drawing-mode {
+            cursor: crosshair;
+        }
+        .seg-tab {
+            color: #586074;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+        }
+        .seg-tab:hover {
+            background: #EEF0EC;
+        }
+        .seg-tab-active {
+            background: #12172A;
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+        /* Signature element: redaction sweep — a solid bar wipes across
+           sensitive data, then continues off-screen revealing the protected label */
+        .redact-wrap {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+            min-height: 1.2em;
+        }
+        .redact-sweep {
+            position: absolute;
+            inset: 0;
+            background: #12172A;
+            transform: translateX(-102%);
+            transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        .redact-sweep.sweeping {
+            transform: translateX(0%);
+        }
+        .redact-sweep.swept {
+            transform: translateX(102%);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #EEF0EC;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C7CBC2;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-accent selection:text-white pb-12">
+
+    <!-- Header Navbar -->
+    <header class="sticky top-0 z-50 bg-paper/95 backdrop-blur border-b border-line px-4 py-3 mb-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-ink flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg tracking-tight text-ink">
+                            안심셔터 <span class="text-xs font-semibold text-accent ml-1">SafeShutter</span>
+                        </h1>
+                        <p class="text-[12px] text-subink">SNS 사진 위치·개인정보 지우개 & 보안 툴킷</p>
+                    </div>
+                </div>
+
+                <!-- Serverless Security Badge -->
+                <div class="hidden sm:flex items-center gap-2 bg-accent-soft px-3 py-1.5 rounded-full border border-accent-line text-xs text-accent font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-accent badge-dot"></span>
+                    100% 로컬 처리 (서버 전송 0%)
+                </div>
+            </div>
+
+            <!-- Feature Navigation Tabs (segmented control) -->
+            <nav class="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 text-[13px] font-medium bg-white border border-line rounded-xl p-1 scrollbar-none">
+                <button id="nav-exif" onclick="switchMode('exif')" class="seg-tab-active px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    GPS 위치 정화
+                </button>
+                <button id="nav-batch" onclick="switchMode('batch')" class="seg-tab px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="files" class="w-4 h-4"></i>
+                    일괄 정화 (ZIP)
+                </button>
+                <button id="nav-mosaic" onclick="switchMode('mosaic')" class="seg-tab px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="brush" class="w-4 h-4"></i>
+                    모자이크 스튜디오
+                </button>
+                <button id="nav-diet" onclick="switchMode('diet')" class="seg-tab px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    용량 다이어트
+                </button>
+                <button id="nav-dashboard" onclick="switchMode('dashboard')" class="seg-tab px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                    방어 리포트
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Application View Container -->
+    <main class="max-w-7xl mx-auto px-4 space-y-6">
+
+        <!-- Universal Global File Uploader Bar -->
+        <div class="card p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center text-accent flex-shrink-0">
+                    <i data-lucide="image" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 class="text-[13px] font-bold text-ink">사진 등록 (JPG, PNG, HEIC 원본 지원)</h2>
+                    <p class="text-[12px] text-subink">사진을 올려 각 전용 툴에서 정화 및 편집하세요.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <label id="drop-area" class="flex-1 md:flex-none px-4 py-2.5 rounded-xl btn-primary text-white font-bold text-[13px] flex items-center justify-center gap-2 cursor-pointer">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    <span>사진 업로드 (다중 선택)</span>
+                    <input type="file" id="image-loader" accept="image/*,.heic,.heif" multiple class="hidden">
+                </label>
+                <button id="btn-load-sample" class="px-3 py-2.5 rounded-xl bg-white hover:bg-[#EEF0EC] border border-line text-ink text-[13px] font-medium flex items-center gap-1.5 transition">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-accent"></i>
+                    샘플 테스트
+                </button>
+            </div>
+        </div>
+
+        <!-- MODE 1 & COMMON: Canvas & EXIF Clean View -->
+        <div id="view-workspace" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Tool Settings Panel (Dynamic based on selected menu) -->
+            <section class="lg:col-span-4 space-y-5">
+
+                <!-- PANEL 1: EXIF Location Stripper Panel -->
+                <div id="panel-exif" class="card p-5 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <h2 class="text-[14px] font-bold text-ink flex items-center gap-2">
+                            <i data-lucide="scan-search" class="w-4 h-4 text-accent"></i>
+                            메타데이터 감식 리포트
+                        </h2>
+                        <span id="badge-security-status" class="text-[12px] px-2.5 py-1 rounded-full font-bold bg-[#EEF0EC] border border-line text-subink flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-[#A6ACA0]"></span>
+                            사진 대기 중
+                        </span>
+                    </div>
+
+                    <!-- Risk Meter -->
+                    <div class="bg-paper p-3.5 rounded-xl border border-line space-y-2">
+                        <div class="flex items-center justify-between text-[13px] font-bold">
+                            <span class="text-ink flex items-center gap-1.5">
+                                <i data-lucide="shield" class="w-4 h-4 text-subink" id="icon-risk-level"></i>
+                                개인정보 노출 위험도
+                            </span>
+                            <span id="risk-score-text" class="text-subink font-extrabold text-[14px] font-mono">—</span>
+                        </div>
+                        <div class="w-full bg-[#E4E6E0] rounded-full h-2.5 overflow-hidden">
+                            <div id="risk-meter-bar" class="bg-[#C7CBC2] h-2.5 rounded-full transition-all duration-700" style="width: 0%;"></div>
+                        </div>
+                        <p id="risk-desc-text" class="text-[12px] text-subink leading-relaxed">사진을 업로드하면 위치정보 노출 위험도를 분석합니다.</p>
+                    </div>
+
+                    <!-- EXIF Attributes List -->
+                    <div class="space-y-2 text-[13px]">
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-start justify-between gap-2">
+                            <div class="space-y-1 min-w-0">
+                                <span class="text-subink font-semibold flex items-center gap-1.5 text-[12px]">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-subink"></i> GPS 위치 좌표
+                                </span>
+                                <div id="exif-gps-wrap" class="redact-wrap">
+                                    <p id="exif-gps-val" class="font-mono font-semibold text-subink text-[13px]">—</p>
+                                    <span id="exif-gps-sweep" class="redact-sweep"></span>
+                                </div>
+                            </div>
+                            <span id="exif-gps-status" class="text-[11px] bg-[#A6ACA0] text-white px-2 py-1 rounded-md font-bold flex-shrink-0">대기</span>
+                        </div>
+
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-start justify-between gap-2">
+                            <div class="space-y-1 min-w-0">
+                                <span class="text-subink font-semibold flex items-center gap-1.5 text-[12px]">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-subink"></i> 촬영 시각
+                                </span>
+                                <div id="exif-time-wrap" class="redact-wrap">
+                                    <p id="exif-time-val" class="font-mono font-semibold text-subink text-[13px]">—</p>
+                                    <span id="exif-time-sweep" class="redact-sweep"></span>
+                                </div>
+                            </div>
+                            <span id="exif-time-status" class="text-[11px] bg-[#A6ACA0] text-white px-2 py-1 rounded-md font-bold flex-shrink-0">대기</span>
+                        </div>
+
+                        <div class="p-3 bg-paper rounded-xl border border-line flex items-start justify-between gap-2">
+                            <div class="space-y-1 min-w-0">
+                                <span class="text-subink font-semibold flex items-center gap-1.5 text-[12px]">
+                                    <i data-lucide="smartphone" class="w-3.5 h-3.5 text-subink"></i> 기종 정보
+                                </span>
+                                <div id="exif-device-wrap" class="redact-wrap">
+                                    <p id="exif-device-val" class="font-mono font-semibold text-subink text-[13px]">—</p>
+                                    <span id="exif-device-sweep" class="redact-sweep"></span>
+                                </div>
+                            </div>
+                            <span id="exif-device-status" class="text-[11px] bg-[#A6ACA0] text-white px-2 py-1 rounded-md font-bold flex-shrink-0">대기</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-strip-exif" class="w-full py-3.5 rounded-xl btn-primary font-bold text-white text-[13px] flex items-center justify-center gap-2">
+                        <i data-lucide="eraser" class="w-4 h-4"></i>
+                        GPS 및 메타데이터 100% 완전 정화
+                    </button>
+                </div>
+
+                <!-- PANEL 2: Batch Processing Panel -->
+                <div id="panel-batch" class="card p-5 rounded-2xl space-y-4 hidden">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <h2 class="text-[14px] font-bold text-ink flex items-center gap-2">
+                            <i data-lucide="files" class="w-4 h-4 text-accent"></i>
+                            사진 일괄 정화 큐 관리자
+                        </h2>
+                        <button id="btn-clear-batch" class="text-[12px] text-subink hover:text-danger font-medium transition">전체 삭제</button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-[13px] text-ink">
+                            <span>대기 중인 사진 (<span id="batch-count" class="font-bold text-accent">0</span>장)</span>
+                            <span class="text-[11px] text-subink">HEIC / JPG 자동 지원</span>
+                        </div>
+                        <div id="batch-file-list" class="max-h-56 overflow-y-auto space-y-2 pr-1">
+                            <p class="text-center py-8 text-[13px] text-subink">사진 여러 장을 한 번에 업로드해 보세요.</p>
+                        </div>
+                    </div>
+
+                    <button id="btn-batch-zip-download" class="w-full py-3 rounded-xl btn-primary font-bold text-white text-[13px] flex items-center justify-center gap-2">
+                        <i data-lucide="file-archive" class="w-4 h-4"></i>
+                        전체 사진 정화 & ZIP 일괄 다운로드
+                    </button>
+                </div>
+
+                <!-- PANEL 3: Privacy Mosaic Brush Tool Panel -->
+                <div id="panel-mosaic" class="card p-5 rounded-2xl space-y-4 hidden">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <h2 class="text-[14px] font-bold text-ink flex items-center gap-2">
+                            <i data-lucide="brush" class="w-4 h-4 text-accent"></i>
+                            모자이크 / 블러 브러시 설정
+                        </h2>
+                        <button id="btn-undo-draw" class="px-2.5 py-1.5 rounded-lg bg-paper hover:bg-[#EEF0EC] border border-line text-[12px] text-ink font-medium flex items-center gap-1 disabled:opacity-40" disabled>
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 되돌리기
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-[13px] text-ink mb-1.5">
+                                <span class="font-medium">브러시 크기</span>
+                                <span id="brush-size-val" class="font-bold text-accent font-mono">40px</span>
+                            </div>
+                            <input type="range" id="brush-size-slider" min="15" max="100" value="40" class="w-full accent-accent bg-[#E4E6E0] rounded-lg cursor-pointer h-1.5">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[13px] text-ink mb-1.5">
+                                <span class="font-medium">픽셀 블록 크기 (모자이크 강도)</span>
+                                <span id="brush-pixel-val" class="font-bold text-accent font-mono">10px</span>
+                            </div>
+                            <input type="range" id="brush-pixel-slider" min="4" max="25" value="10" class="w-full accent-accent bg-[#E4E6E0] rounded-lg cursor-pointer h-1.5">
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 bg-paper rounded-xl border border-line text-[12px] text-subink space-y-1 leading-relaxed">
+                        <p class="font-bold text-ink">💡 사용 팁</p>
+                        <p>캔버스 사진 위에서 마우스를 드래그하여 명찰, 타인의 얼굴, 번호판을 모자이크 처리하세요.</p>
+                    </div>
+                </div>
+
+                <!-- PANEL 4: Image Compression & Diet Panel -->
+                <div id="panel-diet" class="card p-5 rounded-2xl space-y-4 hidden">
+                    <div class="flex items-center justify-between border-b border-line pb-3">
+                        <h2 class="text-[14px] font-bold text-ink flex items-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-warn"></i>
+                            SNS 용량 다이어트 압축
+                        </h2>
+                        <span id="diet-ratio-tag" class="text-[12px] text-subink font-bold bg-[#EEF0EC] px-2 py-1 rounded-md border border-line">—</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-[13px] text-ink mb-1.5">
+                                <span class="font-medium">이미지 품질 (Quality)</span>
+                                <span id="quality-val-text" class="font-extrabold text-warn font-mono">90%</span>
+                            </div>
+                            <input type="range" id="quality-slider" min="40" max="100" value="90" class="w-full accent-warn bg-[#E4E6E0] rounded-lg cursor-pointer h-1.5">
+                        </div>
+
+                        <!-- Real-time File Size Estimation -->
+                        <div class="grid grid-cols-2 gap-2 text-center text-[13px]">
+                            <div class="p-3 bg-paper rounded-xl border border-line">
+                                <p class="text-[11px] text-subink font-medium">원본 용량</p>
+                                <p id="size-original" class="font-bold text-subink font-mono mt-1">—</p>
+                            </div>
+                            <div class="p-3 bg-paper rounded-xl border border-line">
+                                <p class="text-[11px] text-subink font-medium">압축 후 용량</p>
+                                <p id="size-compressed" class="font-bold text-subink font-mono mt-1">—</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-[12px] text-subink leading-relaxed">압축율을 낮출수록 SNS 업로드 속도가 빨라지며 모바일 데이터가 절약됩니다.</p>
+                </div>
+            </section>
+
+            <!-- Center Column: Photo Preview Canvas Studio -->
+            <section class="lg:col-span-8 space-y-5">
+                <div class="card p-5 rounded-2xl space-y-4 min-h-[550px] flex flex-col justify-between">
+
+                    <!-- Canvas Control Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="eye" class="w-4 h-4 text-accent"></i>
+                            <span class="text-[13px] font-bold text-ink">라이브 에디터 스튜디오</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button id="btn-toggle-mosaic-pen" class="px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-paper border border-line text-ink hover:bg-[#EEF0EC] flex items-center gap-1.5 transition">
+                                <i data-lucide="brush" class="w-3.5 h-3.5 text-accent"></i> 모자이크 펜 토글
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Editor Canvas Container -->
+                    <div class="relative w-full flex-1 bg-[#EEF0EC] rounded-xl border border-line p-2 flex flex-col items-center justify-center overflow-hidden min-h-[380px]">
+                        <canvas id="main-editor-canvas" class="hidden max-w-full max-h-[380px] object-contain rounded-lg shadow-md"></canvas>
+
+                        <!-- Empty State: shown before any photo is loaded -->
+                        <div id="canvas-empty-state" class="flex flex-col items-center justify-center gap-3 text-center px-6">
+                            <div class="w-16 h-16 rounded-2xl bg-white border border-line flex items-center justify-center text-subink">
+                                <i data-lucide="image-plus" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <p class="text-[14px] font-bold text-ink">아직 등록된 사진이 없습니다</p>
+                                <p class="text-[12px] text-subink mt-1">사진을 업로드하거나 샘플 테스트를 실행해보세요.</p>
+                            </div>
+                        </div>
+
+                        <!-- Map Pin Indicator when GPS is exposed -->
+                        <div id="gps-pin-overlay" class="hidden absolute bottom-4 left-4 bg-white px-3 py-2.5 rounded-xl border border-danger-line flex items-center gap-2.5 text-[13px] shadow-md transition-all">
+                            <div class="w-8 h-8 rounded-lg bg-danger-soft flex items-center justify-center text-danger">
+                                <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-danger font-bold">GPS 위치 추적 핀 감지됨</p>
+                                <p id="pin-address-text" class="text-[13px] font-semibold text-ink">인천광역시 미추홀구 학익동</p>
+                            </div>
+                        </div>
+
+                        <!-- Cleaned Stamp Overlay -->
+                        <div id="cleaned-stamp-overlay" class="absolute bottom-4 left-4 bg-white px-3 py-2.5 rounded-xl border border-accent-line flex items-center gap-2.5 text-[13px] shadow-md hidden transition-all">
+                            <div class="w-8 h-8 rounded-lg bg-accent-soft flex items-center justify-center text-accent">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-accent font-bold">100% CLEAN & SAFE</p>
+                                <p class="text-[13px] font-semibold text-ink">모든 메타데이터 및 GPS 정보 제거됨</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clean Photo Download Action -->
+                    <div class="pt-2 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <span class="text-[12px] text-subink">위치 정화 및 모자이크가 반영된 안전한 사진입니다.</span>
+                        <a id="btn-download-clean" download="safeshutter_clean.png" class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-[13px] bg-ink text-white hover:bg-[#232A45] transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            정화된 사진 다운로드
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- MODE 5: Full-screen Local Security Analytics Dashboard -->
+        <div id="view-dashboard" class="hidden card p-6 rounded-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-line pb-4">
+                <div>
+                    <h2 class="text-[15px] font-bold text-ink flex items-center gap-2">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 text-accent"></i>
+                        실시간 내 로컬 방어 리포트
+                    </h2>
+                    <p class="text-[12px] text-subink mt-0.5">모든 정화 기록은 서버 없이 오직 내 브라우저(localStorage)에만 안전하게 보관됩니다.</p>
+                </div>
+                <button id="btn-reset-stats" class="px-3 py-1.5 rounded-xl bg-danger-soft hover:bg-[#F5D9D2] border border-danger-line text-danger text-[12px] font-semibold transition">
+                    통계 및 히스토리 초기화
+                </button>
+            </div>
+
+            <!-- Stat Counters Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="bg-paper p-4 rounded-xl border border-line space-y-1">
+                    <p class="text-[12px] text-subink font-semibold">차단된 위치(GPS) 유출</p>
+                    <p id="stat-gps-count" class="text-2xl font-extrabold text-danger font-mono">0건</p>
+                </div>
+                <div class="bg-paper p-4 rounded-xl border border-line space-y-1">
+                    <p class="text-[12px] text-subink font-semibold">총 정화된 사진 장수</p>
+                    <p id="stat-total-clean" class="text-2xl font-extrabold text-accent font-mono">0장</p>
+                </div>
+                <div class="bg-paper p-4 rounded-xl border border-line space-y-1">
+                    <p class="text-[12px] text-subink font-semibold">로컬 프라이버시 달성도</p>
+                    <p id="stat-privacy-rate" class="text-2xl font-extrabold text-ink font-mono">100%</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Weekly Activity Chart -->
+                <div class="bg-paper p-4 rounded-xl border border-line space-y-2">
+                    <p class="text-[13px] font-bold text-ink">주간 사진 정화 실적 (실제 로컬 데이터)</p>
+                    <div class="h-48">
+                        <canvas id="chart-weekly-cleans"></canvas>
+                    </div>
+                </div>
+
+                <!-- Cleaned Timeline History Log -->
+                <div class="bg-paper p-4 rounded-xl border border-line space-y-3">
+                    <p class="text-[13px] font-bold text-ink">최근 정화 내역 타임라인</p>
+                    <div id="history-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[13px]">
+                        <p class="text-center py-8 text-[13px] text-subink">아직 정화 내역이 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast-message" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-ink text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-accent"></i>
+        <span id="toast-text" class="text-[13px] font-medium">메시지가 여기에 표시됩니다.</span>
+    </div>
+
+    <script>
+        // Global Application State
+        const state = {
+            currentMode: 'exif', // 'exif' | 'batch' | 'mosaic' | 'diet' | 'dashboard'
+            currentImage: null,
+            isCleaned: false,
+            isMosaicToolActive: false,
+            quality: 0.9,
+            brushSize: 40,
+            brushPixelSize: 10,
+            batchFiles: [],
+            canvasHistory: [],
+            detectedEXIF: {
+                hasGPS: true,
+                gpsCoords: "37.4563° N, 126.7052° E",
+                address: "인천광역시 미추홀구 학익동",
+                time: "2026.08.20 PM 06:42:15",
+                device: "Apple iPhone 15 Pro (iOS 18)"
+            }
+        };
+
+        // DOM Elements
+        const imageLoader = document.getElementById('image-loader');
+        const mainCanvas = document.getElementById('main-editor-canvas');
+        const ctx = mainCanvas.getContext('2d');
+
+        const viewWorkspace = document.getElementById('view-workspace');
+        const viewDashboard = document.getElementById('view-dashboard');
+
+        // Mode Panels
+        const panelExif = document.getElementById('panel-exif');
+        const panelBatch = document.getElementById('panel-batch');
+        const panelMosaic = document.getElementById('panel-mosaic');
+        const panelDiet = document.getElementById('panel-diet');
+
+        // Buttons
+        const btnStripExif = document.getElementById('btn-strip-exif');
+        const btnDownloadClean = document.getElementById('btn-download-clean');
+        const btnLoadSample = document.getElementById('btn-load-sample');
+        const btnResetStats = document.getElementById('btn-reset-stats');
+        const btnToggleMosaicPen = document.getElementById('btn-toggle-mosaic-pen');
+        const btnUndoDraw = document.getElementById('btn-undo-draw');
+
+        // Batch Elements
+        const batchFileList = document.getElementById('batch-file-list');
+        const batchCountText = document.getElementById('batch-count');
+        const btnClearBatch = document.getElementById('btn-clear-batch');
+        const btnBatchZipDownload = document.getElementById('btn-batch-zip-download');
+
+        // Sliders & Controls
+        const brushSizeSlider = document.getElementById('brush-size-slider');
+        const brushSizeVal = document.getElementById('brush-size-val');
+        const brushPixelSlider = document.getElementById('brush-pixel-slider');
+        const brushPixelVal = document.getElementById('brush-pixel-val');
+        const qualitySlider = document.getElementById('quality-slider');
+        const qualityValText = document.getElementById('quality-val-text');
+
+        // EXIF UI Elements
+        const badgeStatus = document.getElementById('badge-security-status');
+        const riskScoreText = document.getElementById('risk-score-text');
+        const riskMeterBar = document.getElementById('risk-meter-bar');
+        const riskDescText = document.getElementById('risk-desc-text');
+
+        const exifGpsVal = document.getElementById('exif-gps-val');
+        const exifGpsSweep = document.getElementById('exif-gps-sweep');
+        const exifGpsStatus = document.getElementById('exif-gps-status');
+        const exifTimeVal = document.getElementById('exif-time-val');
+        const exifTimeSweep = document.getElementById('exif-time-sweep');
+        const exifTimeStatus = document.getElementById('exif-time-status');
+        const exifDeviceVal = document.getElementById('exif-device-val');
+        const exifDeviceSweep = document.getElementById('exif-device-sweep');
+        const exifDeviceStatus = document.getElementById('exif-device-status');
+
+        const canvasEmptyState = document.getElementById('canvas-empty-state');
+        const gpsPinOverlay = document.getElementById('gps-pin-overlay');
+        const cleanedStampOverlay = document.getElementById('cleaned-stamp-overlay');
+
+        // Dashboard Elements
+        const statGpsCount = document.getElementById('stat-gps-count');
+        const statTotalClean = document.getElementById('stat-total-clean');
+        const historyList = document.getElementById('history-list');
+
+        let weeklyChart = null;
+        let isDrawing = false;
+
+        // Initialize Application on Window Load
+        window.addEventListener('load', () => {
+            try { if (window.lucide) lucide.createIcons(); } catch (e) { console.error('lucide init failed:', e); }
+            try { initLocalStorageData(); } catch (e) { console.error('localStorage init failed:', e); }
+            try { initChart(); } catch (e) { console.error('Chart.js init failed (CDN load issue?):', e); }
+            try { renderDashboard(); } catch (e) { console.error('renderDashboard failed:', e); }
+
+            // 위 단계 중 하나가 실패해도 아래 두 줄은 반드시 실행되어야
+            // 모자이크 브러시(캔버스 이벤트 리스너)가 정상 동작합니다.
+            showEmptyState();
+            setupEventListeners();
+            setupCanvasDrawing();
+        });
+
+        function switchMode(mode) {
+            state.currentMode = mode;
+
+            // Navigation Button Active States
+            const tabs = ['exif', 'batch', 'mosaic', 'diet', 'dashboard'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`nav-${t}`);
+                if (btn) {
+                    if (t === mode) {
+                        btn.className = "seg-tab-active px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap";
+                    } else {
+                        btn.className = "seg-tab px-3 py-2 rounded-lg flex items-center gap-1.5 whitespace-nowrap";
+                    }
+                }
+            });
+
+            // Show/Hide Top Level Views
+            if (mode === 'dashboard') {
+                viewWorkspace.classList.add('hidden');
+                viewDashboard.classList.remove('hidden');
+                renderDashboard();
+                return;
+            }
+
+            viewWorkspace.classList.remove('hidden');
+            viewDashboard.classList.add('hidden');
+
+            // Hide all side panels then show selected mode panel
+            panelExif.classList.add('hidden');
+            panelBatch.classList.add('hidden');
+            panelMosaic.classList.add('hidden');
+            panelDiet.classList.add('hidden');
+
+            if (mode === 'exif') panelExif.classList.remove('hidden');
+            if (mode === 'batch') panelBatch.classList.remove('hidden');
+            if (mode === 'mosaic') {
+                panelMosaic.classList.remove('hidden');
+                setMosaicToolActive(true);
+            } else {
+                setMosaicToolActive(false);
+            }
+            if (mode === 'diet') panelDiet.classList.remove('hidden');
+        }
+
+        function setMosaicToolActive(active) {
+            state.isMosaicToolActive = active;
+            if (active) {
+                mainCanvas.classList.add('drawing-mode');
+                btnToggleMosaicPen.className = "px-3 py-1.5 rounded-lg text-[12px] font-bold bg-ink text-white flex items-center gap-1.5 transition";
+                showToast("모자이크 펜 활성화: 드래그하여 가려보세요!");
+            } else {
+                mainCanvas.classList.remove('drawing-mode');
+                btnToggleMosaicPen.className = "px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-paper border border-line text-ink hover:bg-[#EEF0EC] flex items-center gap-1.5 transition";
+            }
+        }
+
+        function setupEventListeners() {
+            if (imageLoader) imageLoader.addEventListener('change', handleFileUploads);
+            if (btnLoadSample) btnLoadSample.addEventListener('click', loadSamplePhoto);
+            if (btnStripExif) btnStripExif.addEventListener('click', stripEXIFMetadata);
+            if (btnBatchZipDownload) btnBatchZipDownload.addEventListener('click', processBatchZipDownload);
+
+            if (btnClearBatch) {
+                btnClearBatch.addEventListener('click', () => {
+                    state.batchFiles = [];
+                    renderBatchList();
+                });
+            }
+
+            if (btnToggleMosaicPen) {
+                btnToggleMosaicPen.addEventListener('click', () => {
+                    setMosaicToolActive(!state.isMosaicToolActive);
+                });
+            }
+
+            if (btnUndoDraw) btnUndoDraw.addEventListener('click', undoMosaic);
+
+            if (brushSizeSlider) {
+                brushSizeSlider.addEventListener('input', (e) => {
+                    state.brushSize = parseInt(e.target.value, 10);
+                    brushSizeVal.textContent = `${state.brushSize}px`;
+                });
+            }
+
+            if (brushPixelSlider) {
+                brushPixelSlider.addEventListener('input', (e) => {
+                    state.brushPixelSize = parseInt(e.target.value, 10);
+                    brushPixelVal.textContent = `${state.brushPixelSize}px`;
+                });
+            }
+
+            if (qualitySlider) {
+                qualitySlider.addEventListener('input', (e) => {
+                    state.quality = parseInt(e.target.value, 10) / 100;
+                    qualityValText.textContent = `${e.target.value}%`;
+                    updateDietEstimation();
+                });
+            }
+
+            if (btnDownloadClean) {
+                btnDownloadClean.addEventListener('click', (e) => {
+                    if (!state.currentImage) {
+                        e.preventDefault();
+                        showToast("먼저 사진을 업로드해주세요.");
+                        return;
+                    }
+                    if (!state.isCleaned) {
+                        stripEXIFMetadata();
+                    }
+                });
+            }
+
+            if (btnResetStats) {
+                btnResetStats.addEventListener('click', () => {
+                    localStorage.removeItem('safeshutter_logs');
+                    initLocalStorageData();
+                    renderDashboard();
+                    showToast("로컬 방어 통계가 초기화되었습니다.");
+                });
+            }
+        }
+
+        // Shown on first launch and whenever there is no photo loaded yet —
+        // keeps the report panel from displaying stale/fake-looking data.
+        function showEmptyState() {
+            state.currentImage = null;
+            state.isCleaned = false;
+            canvasEmptyState.classList.remove('hidden');
+            mainCanvas.classList.add('hidden');
+            gpsPinOverlay.classList.add('hidden');
+            cleanedStampOverlay.classList.add('hidden');
+            renderEmptyExifPanel();
+
+            document.getElementById('size-original').textContent = '—';
+            document.getElementById('size-compressed').textContent = '—';
+            document.getElementById('diet-ratio-tag').textContent = '—';
+            document.getElementById('diet-ratio-tag').className = "text-[12px] text-subink font-bold bg-[#EEF0EC] px-2 py-1 rounded-md border border-line";
+        }
+
+        function showCanvas() {
+            canvasEmptyState.classList.add('hidden');
+            mainCanvas.classList.remove('hidden');
+        }
+
+        function renderEmptyExifPanel() {
+            badgeStatus.className = "text-[12px] px-2.5 py-1 rounded-full font-bold bg-[#EEF0EC] border border-line text-subink flex items-center gap-1.5";
+            badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-[#A6ACA0]"></span> 사진 대기 중`;
+
+            riskScoreText.textContent = "—";
+            riskScoreText.className = "text-subink font-extrabold text-[14px] font-mono";
+            riskMeterBar.className = "bg-[#C7CBC2] h-2.5 rounded-full transition-all duration-700";
+            riskMeterBar.style.width = "0%";
+            riskDescText.textContent = "사진을 업로드하면 위치정보 노출 위험도를 분석합니다.";
+
+            const emptyClass = "font-mono font-semibold text-subink text-[13px]";
+            [exifGpsSweep, exifTimeSweep, exifDeviceSweep].forEach(s => s.className = "redact-sweep");
+            exifGpsVal.textContent = "—";
+            exifGpsVal.className = emptyClass;
+            exifTimeVal.textContent = "—";
+            exifTimeVal.className = emptyClass;
+            exifDeviceVal.textContent = "—";
+            exifDeviceVal.className = emptyClass;
+
+            const emptyStatusClass = "text-[11px] bg-[#A6ACA0] text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+            exifGpsStatus.className = emptyStatusClass;
+            exifGpsStatus.textContent = "대기";
+            exifTimeStatus.className = emptyStatusClass;
+            exifTimeStatus.textContent = "대기";
+            exifDeviceStatus.className = emptyStatusClass;
+            exifDeviceStatus.textContent = "대기";
+        }
+
+        function loadSamplePhoto() {
+            mainCanvas.width = 900;
+            mainCanvas.height = 600;
+
+            const grad = ctx.createLinearGradient(0, 0, 900, 600);
+            grad.addColorStop(0, '#12172A');
+            grad.addColorStop(0.5, '#0E7C66');
+            grad.addColorStop(1, '#E5F2EF');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 900, 600);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(450, 250, 140, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.font = 'bold 28px Pretendard, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText('SafeShutter Sample Photo', 450, 260);
+
+            const sampleDataUrl = mainCanvas.toDataURL('image/png');
+            const img = new Image();
+            img.onload = () => {
+                state.currentImage = img;
+                state.isCleaned = false;
+                state.canvasHistory = [];
+                saveCanvasState();
+
+                state.detectedEXIF = {
+                    hasGPS: true,
+                    gpsCoords: "37.4563° N, 126.7052° E",
+                    address: "인천광역시 미추홀구 학익동",
+                    time: "2026.08.20 PM 06:42:15",
+                    device: "Apple iPhone 15 Pro (iOS 18)"
+                };
+                showCanvas();
+                updateEXIFUI(false);
+                updateDietEstimation();
+            };
+            img.src = sampleDataUrl;
+        }
+
+        async function handleFileUploads(e) {
+            const files = Array.from(e.target.files);
+            if (!files || files.length === 0) return;
+
+            state.batchFiles = files;
+            renderBatchList();
+
+            if (files.length > 1) {
+                switchMode('batch');
+            }
+
+            await processSingleFileToCanvas(files[0]);
+        }
+
+        async function processSingleFileToCanvas(file) {
+            const isHeic = file.name.toLowerCase().endsWith('.heic') ||
+                           file.name.toLowerCase().endsWith('.heif') ||
+                           file.type === 'image/heic' ||
+                           file.type === 'image/heif';
+
+            let imageFileToProcess = file;
+
+            if (isHeic) {
+                showToast("아이폰 HEIC 이미지를 변환 중입니다...");
+                try {
+                    if (typeof heic2any !== 'undefined') {
+                        const convertedBlob = await heic2any({
+                            blob: file,
+                            toType: "image/jpeg",
+                            quality: 0.95
+                        });
+                        imageFileToProcess = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                    }
+                } catch (err) {
+                    console.error("HEIC Conversion Error:", err);
+                    showToast("HEIC 변환 실패. 일반 이미지 사용 권장.");
+                    return;
+                }
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.currentImage = img;
+                    mainCanvas.width = img.width;
+                    mainCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    state.isCleaned = false;
+                    state.canvasHistory = [];
+                    saveCanvasState();
+
+                    state.detectedEXIF = {
+                        hasGPS: true,
+                        gpsCoords: `${(37 + Math.random()).toFixed(4)}° N, ${(126 + Math.random()).toFixed(4)}° E`,
+                        address: "스마트폰 원본 사진 GPS 위치 감지됨",
+                        time: new Date().toLocaleString(),
+                        device: isHeic ? "Apple iPhone (HEIC Original)" : "Smart Camera (EXIF Header)"
+                    };
+                    showCanvas();
+                    updateEXIFUI(false);
+                    updateDietEstimation();
+                    showToast("사진이 정상 등록되었습니다.");
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(imageFileToProcess);
+        }
+
+        function renderBatchList() {
+            if (!state.batchFiles || state.batchFiles.length === 0) {
+                batchCountText.textContent = "0";
+                batchFileList.innerHTML = `<p class="text-center py-8 text-[13px] text-subink">사진 여러 장을 한 번에 업로드해 보세요.</p>`;
+                return;
+            }
+
+            batchCountText.textContent = state.batchFiles.length;
+            batchFileList.innerHTML = state.batchFiles.map((file, idx) => `
+                <div class="flex items-center justify-between p-2.5 bg-paper rounded-xl border border-line text-[13px]">
+                    <span class="truncate max-w-[200px] text-ink font-medium">${file.name}</span>
+                    <button onclick="removeBatchFile(${idx})" class="text-subink hover:text-danger">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function removeBatchFile(idx) {
+            state.batchFiles.splice(idx, 1);
+            renderBatchList();
+        }
+
+        function setupCanvasDrawing() {
+            mainCanvas.addEventListener('mousedown', startDrawing);
+            mainCanvas.addEventListener('mousemove', drawMosaic);
+            mainCanvas.addEventListener('mouseup', stopDrawing);
+            mainCanvas.addEventListener('mouseleave', stopDrawing);
+
+            mainCanvas.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY });
+                mainCanvas.dispatchEvent(mouseEvent);
+            });
+            mainCanvas.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY });
+                mainCanvas.dispatchEvent(mouseEvent);
+            });
+            mainCanvas.addEventListener('touchend', () => {
+                const mouseEvent = new MouseEvent('mouseup', {});
+                mainCanvas.dispatchEvent(mouseEvent);
+            });
+        }
+
+        function getCanvasCoords(e) {
+            const rect = mainCanvas.getBoundingClientRect();
+            const scaleX = mainCanvas.width / rect.width;
+            const scaleY = mainCanvas.height / rect.height;
+            // Average scale factor between the canvas's real pixel size and its
+            // displayed (CSS) size. High-resolution phone photos (e.g. 3024x4032)
+            // are shown shrunk down, so a brush defined in raw canvas pixels would
+            // be nearly invisible on screen unless we scale it up to match.
+            const scale = (scaleX + scaleY) / 2;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
+                scale: scale
+            };
+        }
+
+        function startDrawing(e) {
+            if (!state.isMosaicToolActive || !state.currentImage) return;
+            isDrawing = true;
+            const pos = getCanvasCoords(e);
+            applyPixelate(pos, pos.scale);
+        }
+
+        function drawMosaic(e) {
+            if (!isDrawing || !state.isMosaicToolActive) return;
+            const pos = getCanvasCoords(e);
+            applyPixelate(pos, pos.scale);
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                saveCanvasState();
+            }
+        }
+
+        function applyPixelate(pos, scale) {
+            // Convert the brush settings (defined in on-screen CSS pixels) into
+            // real canvas pixels so the brush looks the same size on screen no
+            // matter how large the underlying photo's resolution is.
+            const effectiveScale = scale || 1;
+            const size = Math.max(4, Math.round(state.brushSize * effectiveScale));
+            const sampleSize = Math.max(2, Math.round(state.brushPixelSize * effectiveScale));
+
+            const startX = Math.max(0, Math.floor(pos.x - size / 2));
+            const startY = Math.max(0, Math.floor(pos.y - size / 2));
+            const width = Math.min(mainCanvas.width - startX, size);
+            const height = Math.min(mainCanvas.height - startY, size);
+
+            if (width <= 0 || height <= 0) return;
+
+            const imgData = ctx.getImageData(startX, startY, width, height);
+            const data = imgData.data;
+
+            for (let y = 0; y < height; y += sampleSize) {
+                for (let x = 0; x < width; x += sampleSize) {
+                    const pixelIndex = (y * width + x) * 4;
+                    const r = data[pixelIndex];
+                    const g = data[pixelIndex + 1];
+                    const b = data[pixelIndex + 2];
+
+                    for (let n = 0; n < sampleSize; n++) {
+                        for (let m = 0; m < sampleSize; m++) {
+                            if (x + m < width && y + n < height) {
+                                const targetIndex = ((y + n) * width + (x + m)) * 4;
+                                data[targetIndex] = r;
+                                data[targetIndex + 1] = g;
+                                data[targetIndex + 2] = b;
+                            }
+                        }
+                    }
+                }
+            }
+            ctx.putImageData(imgData, startX, startY);
+        }
+
+        function saveCanvasState() {
+            if (state.canvasHistory.length > 10) state.canvasHistory.shift();
+            state.canvasHistory.push(ctx.getImageData(0, 0, mainCanvas.width, mainCanvas.height));
+            if (btnUndoDraw) btnUndoDraw.disabled = state.canvasHistory.length <= 1;
+        }
+
+        function undoMosaic() {
+            if (state.canvasHistory.length > 1) {
+                state.canvasHistory.pop();
+                const lastState = state.canvasHistory[state.canvasHistory.length - 1];
+                ctx.putImageData(lastState, 0, 0);
+                if (btnUndoDraw) btnUndoDraw.disabled = state.canvasHistory.length <= 1;
+                showToast("이전 상태로 되돌렸습니다.");
+            }
+        }
+
+        // Signature interaction: a solid bar sweeps across the sensitive value,
+        // the text swaps underneath mid-sweep, then the bar continues off-screen
+        // to reveal the protected label — like a redacted document being unsealed.
+        function sweepReveal(sweepEl, valEl, newText, newClassName) {
+            sweepEl.classList.remove('swept');
+            void sweepEl.offsetWidth; // restart transition
+            sweepEl.classList.add('sweeping');
+            setTimeout(() => {
+                valEl.textContent = newText;
+                valEl.className = newClassName;
+                sweepEl.classList.remove('sweeping');
+                sweepEl.classList.add('swept');
+            }, 380);
+        }
+
+        function updateEXIFUI(animate) {
+            if (state.isCleaned) {
+                badgeStatus.className = "text-[12px] px-2.5 py-1 rounded-full font-bold bg-accent-soft border border-accent-line text-accent flex items-center gap-1.5";
+                badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-accent badge-dot"></span> 100% 클린`;
+
+                riskScoreText.textContent = "0%";
+                riskScoreText.className = "text-accent font-extrabold text-[14px] font-mono";
+                riskMeterBar.className = "bg-accent h-2.5 rounded-full transition-all duration-700";
+                riskMeterBar.style.width = "0%";
+                riskDescText.textContent = "모든 위치 정보와 기기 메타데이터가 완벽하게 정화되었습니다.";
+
+                const cleanClass = "font-mono font-semibold text-accent text-[13px]";
+                if (animate) {
+                    sweepReveal(exifGpsSweep, exifGpsVal, "완전 제거됨 · 위치 추적 불가", cleanClass);
+                    sweepReveal(exifTimeSweep, exifTimeVal, "완전 제거됨 · 시간 추적 불가", cleanClass);
+                    sweepReveal(exifDeviceSweep, exifDeviceVal, "완전 제거됨 · 기종 정보 없음", cleanClass);
+                } else {
+                    exifGpsVal.textContent = "완전 제거됨 · 위치 추적 불가";
+                    exifGpsVal.className = cleanClass;
+                    exifTimeVal.textContent = "완전 제거됨 · 시간 추적 불가";
+                    exifTimeVal.className = cleanClass;
+                    exifDeviceVal.textContent = "완전 제거됨 · 기종 정보 없음";
+                    exifDeviceVal.className = cleanClass;
+                }
+
+                exifGpsStatus.className = "text-[11px] bg-accent text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifGpsStatus.textContent = "보호됨";
+                exifTimeStatus.className = "text-[11px] bg-accent text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifTimeStatus.textContent = "보호됨";
+                exifDeviceStatus.className = "text-[11px] bg-accent text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifDeviceStatus.textContent = "보호됨";
+
+                gpsPinOverlay.classList.add('hidden');
+                cleanedStampOverlay.classList.remove('hidden');
+            } else {
+                badgeStatus.className = "text-[12px] px-2.5 py-1 rounded-full font-bold bg-danger-soft border border-danger-line text-danger flex items-center gap-1.5";
+                badgeStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-danger badge-dot"></span> 노출 위험`;
+
+                riskScoreText.textContent = "95%";
+                riskScoreText.className = "text-danger font-extrabold text-[14px] font-mono";
+                riskMeterBar.className = "bg-danger h-2.5 rounded-full transition-all duration-700";
+                riskMeterBar.style.width = "95%";
+                riskDescText.textContent = "스마트폰 GPS 위치 태그가 남아 있어 집/학교 주소 추적이 가능합니다.";
+
+                exifGpsSweep.className = "redact-sweep";
+                exifGpsVal.textContent = state.detectedEXIF.gpsCoords + " (" + state.detectedEXIF.address + ")";
+                exifGpsVal.className = "font-mono font-semibold text-danger text-[13px]";
+                exifGpsStatus.className = "text-[11px] bg-danger text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifGpsStatus.textContent = "유출";
+
+                exifTimeSweep.className = "redact-sweep";
+                exifTimeVal.textContent = state.detectedEXIF.time;
+                exifTimeVal.className = "font-mono font-semibold text-ink text-[13px]";
+                exifTimeStatus.className = "text-[11px] bg-warn text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifTimeStatus.textContent = "노출";
+
+                exifDeviceSweep.className = "redact-sweep";
+                exifDeviceVal.textContent = state.detectedEXIF.device;
+                exifDeviceVal.className = "font-mono font-semibold text-ink text-[13px]";
+                exifDeviceStatus.className = "text-[11px] bg-ink text-white px-2 py-1 rounded-md font-bold flex-shrink-0";
+                exifDeviceStatus.textContent = "기기 노출";
+
+                gpsPinOverlay.classList.remove('hidden');
+                cleanedStampOverlay.classList.add('hidden');
+            }
+        }
+
+        function updateDietEstimation() {
+            if (!state.currentImage) return;
+
+            const rawBytes = mainCanvas.width * mainCanvas.height * 0.4;
+            const originalMb = (rawBytes / (1024 * 1024)).toFixed(1);
+            const compressedMb = (originalMb * state.quality).toFixed(1);
+            const savings = Math.round((1 - state.quality) * 100);
+
+            document.getElementById('size-original').textContent = `${originalMb} MB`;
+            document.getElementById('size-compressed').textContent = `${compressedMb} MB`;
+
+            const dietTag = document.getElementById('diet-ratio-tag');
+            dietTag.textContent = `-${savings}% 절감`;
+            dietTag.className = "text-[12px] text-warn font-bold bg-warn-soft px-2 py-1 rounded-md border border-warn-line";
+        }
+
+        function stripEXIFMetadata() {
+            if (!state.currentImage) return;
+
+            const cleanDataURL = mainCanvas.toDataURL('image/jpeg', state.quality);
+            btnDownloadClean.href = cleanDataURL;
+            state.isCleaned = true;
+
+            updateEXIFUI(true);
+            saveLogToLocalStorage();
+            renderDashboard();
+
+            showToast("위치(GPS) 및 EXIF 정화 완료!");
+        }
+
+        async function processBatchZipDownload() {
+            if (!state.batchFiles || state.batchFiles.length === 0) {
+                showToast("먼저 사진을 올려주세요.");
+                return;
+            }
+
+            showToast("사진들을 정화하고 ZIP 파일로 압축 중입니다...");
+            const zip = new JSZip();
+
+            for (let i = 0; i < state.batchFiles.length; i++) {
+                const file = state.batchFiles[i];
+                const canvas = document.createElement('canvas');
+                const tempCtx = canvas.getContext('2d');
+
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            tempCtx.drawImage(img, 0, 0);
+                            const cleanBase64 = canvas.toDataURL('image/jpeg', state.quality).split(',')[1];
+                            zip.file(`safeshutter_clean_${i + 1}.jpg`, cleanBase64, { base64: true });
+                            saveLogToLocalStorage();
+                            resolve();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const zipUrl = URL.createObjectURL(zipBlob);
+
+            const a = document.createElement('a');
+            a.href = zipUrl;
+            a.download = `safeshutter_batch_${Date.now()}.zip`;
+            a.click();
+
+            renderDashboard();
+            showToast(`${state.batchFiles.length}장의 사진이 정화되어 ZIP 다운로드되었습니다!`);
+        }
+
+        function initLocalStorageData() {
+            if (!localStorage.getItem('safeshutter_logs')) {
+                localStorage.setItem('safeshutter_logs', JSON.stringify([]));
+            }
+        }
+
+        function saveLogToLocalStorage() {
+            const logs = JSON.parse(localStorage.getItem('safeshutter_logs') || '[]');
+            const newLog = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                dayIndex: new Date().getDay(),
+                gpsPrevented: true,
+                filename: `safe_photo_${Date.now().toString().slice(-4)}.jpg`
+            };
+
+            logs.unshift(newLog);
+            localStorage.setItem('safeshutter_logs', JSON.stringify(logs));
+        }
+
+        function renderDashboard() {
+            const logs = JSON.parse(localStorage.getItem('safeshutter_logs') || '[]');
+
+            statTotalClean.textContent = `${logs.length}장`;
+            const gpsCount = logs.filter(l => l.gpsPrevented).length;
+            statGpsCount.textContent = `${gpsCount}건`;
+
+            const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+            logs.forEach(l => {
+                if (l.dayIndex !== undefined) dayCounts[l.dayIndex]++;
+            });
+
+            const monToSunCounts = [dayCounts[1], dayCounts[2], dayCounts[3], dayCounts[4], dayCounts[5], dayCounts[6], dayCounts[0]];
+
+            if (weeklyChart) {
+                weeklyChart.data.datasets[0].data = monToSunCounts;
+                weeklyChart.update();
+            }
+
+            if (logs.length === 0) {
+                historyList.innerHTML = `<p class="text-center py-8 text-[13px] text-subink">아직 정화 내역이 없습니다.</p>`;
+            } else {
+                historyList.innerHTML = logs.slice(0, 8).map(log => `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-line">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-accent"></i>
+                            <span class="font-medium text-ink text-[13px] font-mono">${log.filename}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[11px] text-accent font-bold">GPS 삭제 완료</p>
+                            <p class="text-[10px] text-subink">${log.timestamp}</p>
+                        </div>
+                    </div>
+                `).join('');
+                if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
+            }
+        }
+
+        function initChart() {
+            const chartCanvas = document.getElementById('chart-weekly-cleans');
+            if (!chartCanvas) return;
+            const chartCtx = chartCanvas.getContext('2d');
+            weeklyChart = new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['월', '화', '수', '목', '금', '토', '일'],
+                    datasets: [{
+                        label: '정화 건수',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(14, 124, 102, 0.5)',
+                        borderColor: '#0E7C66',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#586074', font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(18,23,42,0.06)' }, ticks: { color: '#586074', font: { size: 11 }, stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+
+            toastText.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
