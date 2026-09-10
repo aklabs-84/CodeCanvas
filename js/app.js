@@ -204,6 +204,62 @@ async function initApp() {
             }
         });
 
+        // 13-1. ClassLog 제출 (스튜디오/교실에서 entryCode를 받고 진입한 경우에만 버튼 노출)
+        const CLASSLOG_STORAGE_KEY = 'codecanvas_classlog_entry';
+        const classlogParams = new URLSearchParams(window.location.search);
+        const urlEntryCode = classlogParams.get('entryCode');
+        let classlogEntry = null;
+        try {
+            if (urlEntryCode) {
+                classlogEntry = { entryCode: urlEntryCode, studentName: classlogParams.get('studentName') || '' };
+                localStorage.setItem(CLASSLOG_STORAGE_KEY, JSON.stringify(classlogEntry));
+            } else {
+                const saved = localStorage.getItem(CLASSLOG_STORAGE_KEY);
+                classlogEntry = saved ? JSON.parse(saved) : null;
+            }
+        } catch (e) {
+            classlogEntry = null;
+        }
+
+        const btnClasslogSubmit = document.getElementById('btn-classlog-submit');
+        if (classlogEntry && classlogEntry.entryCode) {
+            btnClasslogSubmit?.classList.remove('hidden');
+        }
+
+        btnClasslogSubmit?.addEventListener('click', async () => {
+            if (!classlogEntry || !classlogEntry.entryCode) return;
+            const submitTitle = document.getElementById('project-title')?.value || '새 프로젝트';
+            const { html, css, js } = EditorManager.getCode();
+            const textContent = `[HTML]\n${html}\n\n[CSS]\n${css}\n\n[JS]\n${js}`;
+            const textEl = btnClasslogSubmit.querySelector('.text');
+            const originalText = textEl?.textContent;
+
+            btnClasslogSubmit.disabled = true;
+            if (textEl) textEl.textContent = '제출 중...';
+
+            try {
+                const res = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entryCode: classlogEntry.entryCode,
+                        studentName: classlogEntry.studentName,
+                        title: submitTitle,
+                        resultType: 'text',
+                        textContent,
+                    }),
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok) throw new Error((data && (data.error || data.message)) || `제출 실패 (${res.status})`);
+                showSuccessNotification('✅ 클래스에 제출되었습니다!');
+            } catch (err) {
+                showErrorNotification('❌ ' + err.message);
+            } finally {
+                btnClasslogSubmit.disabled = false;
+                if (textEl && originalText) textEl.textContent = originalText;
+            }
+        });
+
         // --- 인증(로그인/회원가입) 모달 로직 ---
         const loginModal = document.getElementById('login-modal');
         const btnLogin = document.getElementById('btn-login');
