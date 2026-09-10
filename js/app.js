@@ -224,11 +224,20 @@ async function initApp() {
         const btnClasslogSubmit = document.getElementById('btn-classlog-submit');
         if (classlogEntry && classlogEntry.entryCode) {
             btnClasslogSubmit?.classList.remove('hidden');
+
+            // 스튜디오를 거치지 않고 ClassLog에서 CodeCanvas로 바로 들어온 경우,
+            // 새 프로젝트에는 의미 없는 "새 프로젝트"만 들어있으므로 학생 이름 기반 제목으로 바꿔준다.
+            const titleInput = document.getElementById('project-title');
+            if (titleInput && classlogEntry.studentName && titleInput.value === '새 프로젝트') {
+                titleInput.value = `${classlogEntry.studentName}의 프로젝트`;
+                window.ProjectManager?.saveCurrentProject?.(true);
+            }
         }
 
         btnClasslogSubmit?.addEventListener('click', async () => {
             if (!classlogEntry || !classlogEntry.entryCode) return;
-            const submitTitle = document.getElementById('project-title')?.value || '새 프로젝트';
+            const defaultTitle = classlogEntry.studentName ? `${classlogEntry.studentName}의 프로젝트` : '새 프로젝트';
+            const submitTitle = document.getElementById('project-title')?.value || defaultTitle;
             const { html, css, js } = EditorManager.getCode();
             const textContent = `[HTML]\n${html}\n\n[CSS]\n${css}\n\n[JS]\n${js}`;
             const textEl = btnClasslogSubmit.querySelector('.text');
