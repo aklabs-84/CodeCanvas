@@ -13,6 +13,7 @@ import { SnippetManager } from './snippets.js';
 import { CdnSearchManager } from './cdn-search.js';
 import { AiAssistant } from './ai-assistant.js';
 import { AdminPanel } from './admin-panel.js';
+import { SubmitAnim } from './submit-anim.js';
 
 // 전역 객체로 등록 (다른 모듈에서 접근 가능하도록)
 window.LayoutManager = LayoutManager;
@@ -231,14 +232,25 @@ async function initApp() {
             const defaultTitle = classlogEntry.studentName ? `${classlogEntry.studentName}의 프로젝트` : '새 프로젝트';
             const submitTitle = document.getElementById('project-title')?.value || defaultTitle;
             const { html, css, js } = EditorManager.getCode();
-            const textContent = `[HTML]\n${html}\n\n[CSS]\n${css}\n\n[JS]\n${js}`;
-            const textEl = btnClasslogSubmit.querySelector('.text');
-            const originalText = textEl?.textContent;
+            const codeText = `[HTML]\n${html}\n\n[CSS]\n${css}\n\n[JS]\n${js}`;
 
             btnClasslogSubmit.disabled = true;
-            if (textEl) textEl.textContent = '제출 중...';
-
+            const startedAt = Date.now();
             try {
+                // 로그인했으면 공유 링크로 제출, 로그인하지 않았으면 코드 그대로 제출한다
+                let payload = { resultType: 'text', textContent: codeText };
+                let doneDesc = '로그인하지 않아서 코드로 제출했어요. 링크로 내려면 로그인한 뒤 다시 제출해 주세요.';
+                if (window.AuthManager?.isAuthenticated) {
+                    SubmitAnim.sending('link');
+                    const projectId = await ProjectManager.saveToCloud();
+                    if (projectId) {
+                        payload = { resultType: 'link', linkUrl: `${CONFIG.SHARE_BASE_URL}?p=${projectId}` };
+                        doneDesc = '친구들이 보드에서 링크를 눌러 내 앱을 볼 수 있어요.';
+                    } else {
+                        doneDesc = '링크를 만들지 못해서 코드로 제출했어요.';
+                    }
+                }
+                SubmitAnim.sending('send');
                 const res = await fetch('/api/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -246,18 +258,17 @@ async function initApp() {
                         entryCode: classlogEntry.entryCode,
                         studentName: classlogEntry.studentName,
                         title: submitTitle,
-                        resultType: 'text',
-                        textContent,
+                        ...payload,
                     }),
                 });
                 const data = await res.json().catch(() => null);
                 if (!res.ok) throw new Error((data && (data.error || data.message)) || `제출 실패 (${res.status})`);
-                showSuccessNotification('✅ 클래스에 제출되었습니다!');
+                await SubmitAnim.minWait(startedAt);
+                SubmitAnim.success(doneDesc);
             } catch (err) {
-                showErrorNotification('❌ ' + err.message);
+                SubmitAnim.error(err.message, () => btnClasslogSubmit.click());
             } finally {
                 btnClasslogSubmit.disabled = false;
-                if (textEl && originalText) textEl.textContent = originalText;
             }
         });
 
