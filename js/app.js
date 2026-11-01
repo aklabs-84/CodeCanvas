@@ -223,10 +223,17 @@ async function initApp() {
 
             // 스튜디오를 거치지 않고 ClassLog에서 CodeCanvas로 바로 들어온 경우,
             // 새 프로젝트에는 의미 없는 "새 프로젝트"만 들어있으므로 학생 이름 기반 제목으로 바꿔준다.
-            const titleInput = document.getElementById('project-title');
-            if (titleInput && classlogEntry.studentName && titleInput.value === '새 프로젝트') {
-                titleInput.value = `${classlogEntry.studentName}의 프로젝트`;
-                window.ProjectManager?.saveCurrentProject?.(true);
+            // 주의: 에디터가 준비되기 전에는 제목 칸이 아직 비어 있으므로, 제목은 프로젝트 데이터로 판단하고
+            // saveCurrentProject()는 쓰지 않는다(에디터의 기본 코드가 방금 받은 PRD를 덮어쓰기 때문).
+            const pm = window.ProjectManager;
+            if (pm?.currentProject && classlogEntry.studentName && pm.currentProject.title === '새 프로젝트') {
+                pm.currentProject.title = `${classlogEntry.studentName}의 프로젝트`;
+                const titleInput = document.getElementById('project-title');
+                if (titleInput) titleInput.value = pm.currentProject.title;
+                try {
+                    localStorage.setItem('codecanvas_current_project', JSON.stringify(pm.currentProject));
+                    pm.saveAllProjects?.();
+                } catch { /* 저장소를 못 쓰면 화면 제목만 바뀐다 */ }
             }
         }
 
@@ -235,14 +242,17 @@ async function initApp() {
             const defaultTitle = classlogEntry.studentName ? `${classlogEntry.studentName}의 프로젝트` : '새 프로젝트';
             const submitTitle = document.getElementById('project-title')?.value || defaultTitle;
             const { html, css, js } = EditorManager.getCode();
-            const codeText = `[HTML]\n${html}\n\n[CSS]\n${css}\n\n[JS]\n${js}`;
+            // 아직 아무것도 만들지 않은 기본 코드 그대로면 한 번 더 물어본다
+            const untouched = js.trim() === 'console.log("Hello, CodeCanvas!");' && /<title>Document<\/title>/.test(html);
+            if (untouched && !confirm('아직 코드를 바꾸지 않았어요. 그래도 제출할까요?')) return;
 
             btnClasslogSubmit.disabled = true;
             const startedAt = Date.now();
             try {
                 // 로그인했으면 공유 링크로 제출, 로그인하지 않았으면 코드 그대로 제출한다
                 // 로그인하지 않으면 서버가 손님 계정으로 링크를 만들어 제출한다 (guestCode). 서버 설정이 없으면 코드로 제출된다.
-                let payload = { resultType: 'text', textContent: codeText, guestCode: { html, css, js } };
+                // 코드는 guestCode로 한 번만 보낸다 (서버가 링크를 못 만들면 거기서 제출용 글을 만든다)
+                let payload = { resultType: 'text', guestCode: { html, css, js } };
                 let doneDesc = '친구들이 보드에서 링크를 눌러 내 앱을 볼 수 있어요.';
                 if (window.AuthManager?.isAuthenticated) {
                     SubmitAnim.sending('link');

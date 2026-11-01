@@ -134,6 +134,12 @@ async function handler(request) {
         }
     }
 
+    // 손님 저장이 안 되어 링크가 없으면 guestCode로 제출용 글을 만든다 (클라이언트가 같은 코드를 두 번 보내지 않게)
+    if (!body.linkUrl && !body.textContent && gc && typeof gc === 'object' && !Array.isArray(gc)) {
+        const s = (v) => (typeof v === 'string' ? v : '');
+        body.textContent = `[HTML]\n${s(gc.html)}\n\n[CSS]\n${s(gc.css)}\n\n[JS]\n${s(gc.js)}`;
+    }
+
     // 코드를 말없이 잘라서 보내면 학생 코드가 사라지므로, 넘치면 잘라 보내지 않고 알려준다
     if (body.textContent && body.textContent.length > TEXT_MAX) {
         return json({ error: `코드가 너무 길어요(${TEXT_MAX.toLocaleString('ko-KR')}자 초과). 로그인한 뒤 링크로 제출해 주세요.` }, 413);
