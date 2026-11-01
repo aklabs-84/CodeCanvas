@@ -238,8 +238,9 @@ async function initApp() {
             const startedAt = Date.now();
             try {
                 // 로그인했으면 공유 링크로 제출, 로그인하지 않았으면 코드 그대로 제출한다
-                let payload = { resultType: 'text', textContent: codeText };
-                let doneDesc = '로그인하지 않아서 코드로 제출했어요. 링크로 내려면 로그인한 뒤 다시 제출해 주세요.';
+                // 로그인하지 않으면 서버가 손님 계정으로 링크를 만들어 제출한다 (guestCode). 서버 설정이 없으면 코드로 제출된다.
+                let payload = { resultType: 'text', textContent: codeText, guestCode: { html, css, js } };
+                let doneDesc = '친구들이 보드에서 링크를 눌러 내 앱을 볼 수 있어요.';
                 if (window.AuthManager?.isAuthenticated) {
                     SubmitAnim.sending('link');
                     const projectId = await ProjectManager.saveToCloud();
@@ -263,6 +264,10 @@ async function initApp() {
                 });
                 const data = await res.json().catch(() => null);
                 if (!res.ok) throw new Error((data && (data.error || data.message)) || `제출 실패 (${res.status})`);
+                // 로그인하지 않았는데 서버가 링크를 못 만들고 코드로 제출한 경우만 안내를 바꾼다
+                if (payload.guestCode && !(data && data.guestLink)) {
+                    doneDesc = '코드로 제출했어요. 링크로 내려면 로그인한 뒤 다시 제출해 주세요.';
+                }
                 await SubmitAnim.minWait(startedAt);
                 SubmitAnim.success(doneDesc);
             } catch (err) {

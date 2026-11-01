@@ -15,6 +15,53 @@ const json = (data, status) =>
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
     });
 
+// 로그인하지 않은 학생의 앱을 "손님 계정" 이름으로 공개 저장한다. 서버 전용 키를 쓰므로 화면에는 노출되지 않는다.
+// 설정이 없거나 다른 프로젝트를 가리키면 null을 돌려주고, 호출한 쪽은 코드(text) 제출로 되돌아간다.
+const SB_PROJECT_REF = 'cgeilntfqqwzelbimoir';
+const GUEST_CODE_MAX = 300_000; // html+css+js 합계 글자 수
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function guestStorage() {
+    const url = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const guestId = process.env.CODECANVAS_SB_GUEST_USER_ID;
+    if (!url || !key || !UUID_RE.test(guestId || '') || !url.includes(SB_PROJECT_REF)) return null;
+    return { url, key, guestId };
+}
+
+async function saveGuestProject(store, { title, code }) {
+    const id = crypto.randomUUID();
+    const res = await fetch(`${store.url}/rest/v1/projects`, {
+        method: 'POST',
+        headers: {
+            apikey: store.key,
+            Authorization: `Bearer ${store.key}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({
+            id,
+            user_id: store.guestId,
+            title,
+            html: code.html,
+            css: code.css,
+            js: code.js,
+            is_public: true,
+            shared_id: 'proj_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11),
+            updated_at: new Date().toISOString(),
+        }),
+    });
+    if (!res.ok) throw new Error(`guest save failed: ${res.status} ${await res.text().catch(() => '')}`);
+    return id;
+}
+
+async function deleteGuestProject(store, id) {
+    await fetch(`${store.url}/rest/v1/projects?id=eq.${id}&user_id=eq.${store.guestId}`, {
+        method: 'DELETE',
+        headers: { apikey: store.key, Authorization: `Bearer ${store.key}` },
+    }).catch((err) => console.error('guest cleanup failed', err));
+}
+
 async function handler(request) {
     if (request.method !== 'POST') {
         return json({ error: 'Method not allowed' }, 405);
@@ -62,6 +109,31 @@ async function handler(request) {
     if (!RESULT_TYPES.includes(body.resultType)) {
         return json({ error: 'resultType은 link, text, image, file 중 하나여야 해요' }, 400);
     }
+    // 로그인하지 않은 학생: 앱 코드를 손님 계정으로 공개 저장하고 그 링크로 제출한다 (실패하면 코드 제출로 되돌아감)
+    let guestStore = null;
+    let guestProjectId = null;
+    const gc = raw.guestCode;
+    if (!body.linkUrl && gc && typeof gc === 'object' && !Array.isArray(gc)) {
+        const code = {
+            html: typeof gc.html === 'string' ? gc.html : '',
+            css: typeof gc.css === 'string' ? gc.css : '',
+            js: typeof gc.js === 'string' ? gc.js : '',
+        };
+        const store = guestStorage();
+        if (store && code.html.length + code.css.length + code.js.length <= GUEST_CODE_MAX) {
+            try {
+                guestProjectId = await saveGuestProject(store, { title: body.title, code });
+                guestStore = store;
+                const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || new URL(request.url).host;
+                body.resultType = 'link';
+                body.linkUrl = `https://${host}/?p=${guestProjectId}`;
+                body.textContent = undefined;
+            } catch (err) {
+                console.error('submit proxy: 손님 저장 실패, 코드 제출로 대체', err);
+            }
+        }
+    }
+
     // 코드를 말없이 잘라서 보내면 학생 코드가 사라지므로, 넘치면 잘라 보내지 않고 알려준다
     if (body.textContent && body.textContent.length > TEXT_MAX) {
         return json({ error: `코드가 너무 길어요(${TEXT_MAX.toLocaleString('ko-KR')}자 초과). 로그인한 뒤 링크로 제출해 주세요.` }, 413);
@@ -92,8 +164,12 @@ async function handler(request) {
             body: JSON.stringify(body),
         });
         const data = await upstream.json().catch(() => ({}));
+        // 제출이 거절되면 방금 만든 손님 앱도 지워서 쓸모없는 앱이 쌓이지 않게 한다
+        if (!upstream.ok && guestStore) await deleteGuestProject(guestStore, guestProjectId);
+        if (upstream.ok && guestProjectId) data.guestLink = true;
         return json(data, upstream.status);
     } catch (err) {
+        if (guestStore) await deleteGuestProject(guestStore, guestProjectId);
         console.error('submit proxy failed', err); // 자세한 내용은 서버 로그에만
         return json({ error: '제출 서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.' }, 502);
     }

@@ -7,6 +7,7 @@
 - (없음)
 
 ## 🟡 다음에 할 일
+- 손님 계정 만들고 Vercel에 CODECANVAS_SB_GUEST_USER_ID 추가 → 로그아웃 상태 제출이 링크로 가는지 확인 (코드는 작성됨, 푸시 전)
 - 배포 후 실제 주소에서 제출 버튼·공유 링크 보기 직접 확인 (Vercel 환경변수 이름은 그대로)
 - index.html.bak, js/editor.js.backup 같은 옛 백업 파일 정리 여부 정하기
 
