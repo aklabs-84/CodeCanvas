@@ -258,6 +258,12 @@ h1 {
         return { attrs: m[1], rest: html.slice(m[0].length) };
     },
 
+    // 일반 자바스크립트인지 판별 (type=module, text/babel, importmap, json 등은 JS 탭으로 합치면 깨지므로 HTML에 그대로 둔다)
+    _isPlainScript(script) {
+        const type = (script.getAttribute('type') || '').trim().toLowerCase();
+        return !type || type === 'text/javascript' || type === 'application/javascript';
+    },
+
     _getUnifiedCode() {
         let bodyOnly = this.code.html;
         const trimmed = bodyOnly.trim();
@@ -269,7 +275,8 @@ h1 {
             try {
                 const doc = new DOMParser().parseFromString(bodyOnly, 'text/html');
                 // head의 외부 스크립트·스타일시트 추출 (CDN 등)
-                doc.head.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
+                doc.head.querySelectorAll('script, link[rel="stylesheet"][href]').forEach(el => {
+                    if (el.tagName === 'SCRIPT' && !el.hasAttribute('src') && this._isPlainScript(el)) return;
                     headExternalTags += '\n    ' + el.outerHTML;
                 });
                 bodyAttrs = this._bodyAttrsOf(doc.body);
@@ -319,15 +326,15 @@ ${this.code.js}
             // 인라인 script 태그 전체 추출 후 제거 (src 있는 외부 스크립트는 유지)
             let js = '';
             doc.querySelectorAll('script').forEach(s => {
-                if (!s.hasAttribute('src')) {
+                if (!s.hasAttribute('src') && this._isPlainScript(s)) {
                     js += s.textContent + '\n';
                     s.remove();
                 }
             });
 
-            // <head>의 외부 CDN 스크립트를 body 상단으로 이동 (데이터 손실 방지)
+            // <head>의 외부 CDN 스크립트(및 module·importmap 같은 특수 인라인 스크립트)를 body 상단으로 이동 (데이터 손실 방지)
             let headScripts = '';
-            doc.head.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(el => {
+            doc.head.querySelectorAll('script, link[rel="stylesheet"][href]').forEach(el => {
                 headScripts += el.outerHTML + '\n';
             });
 
@@ -453,7 +460,7 @@ ${this.code.js}
             let jsContent = '';
             const scriptTags = doc.querySelectorAll('script');
             scriptTags.forEach(script => {
-                if (!script.hasAttribute('src')) {
+                if (!script.hasAttribute('src') && this._isPlainScript(script)) {
                     jsContent += script.textContent + '\n';
                     script.remove();
                 }

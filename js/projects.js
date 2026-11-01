@@ -145,8 +145,78 @@ export const ProjectManager = {
         });
     },
 
+    // 바이브코딩 스튜디오(다른 오리진)에서 넘어온 PRD를 감지해 새 프로젝트로 로드한다.
+    // localStorage는 오리진별로 격리되어 전달할 수 없으므로, entryCode/studentName과 같은 방식으로
+    // URL 쿼리 파라미터(studioPrompt/studioTitle)로만 전달받는다.
+    _loadStudioHandoff() {
+        const params = new URLSearchParams(window.location.search);
+        const studioPrompt = params.get('studioPrompt');
+        if (studioPrompt === null) return false;
+
+        const title = params.get('studioTitle') || '새 프로젝트';
+        const isCloud = !!window.AuthManager?.isAuthenticated;
+        // 주소창 값은 누구나 만들 수 있으므로 HTML에 넣기 전에 특수문자를 무력화한다
+        // (제목의 <script> 삽입, PRD 안의 --> 로 주석이 일찍 닫히는 것 방지)
+        const safeTitle = title.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const safePrompt = studioPrompt.replace(/--(!?)>/g, '-- $1>');
+        const html = [
+            '<!DOCTYPE html>',
+            '<html lang="ko">',
+            '<head>',
+            '<meta charset="UTF-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+            '<title>' + safeTitle + '</title>',
+            '<!--',
+            safePrompt,
+            '-->',
+            '</head>',
+            '<body>',
+            '  <h1>Hello, ' + safeTitle + '!</h1>',
+            '</body>',
+            '</html>',
+        ].join('\n');
+
+        this.currentProject = {
+            id: isCloud ? crypto.randomUUID() : this.generateId(),
+            title,
+            code: {
+                html,
+                css: 'body {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n}',
+                js: 'console.log("Hello, CodeCanvas!");',
+            },
+            isPublic: false,
+            shareId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        this.hasUnsavedChanges = false;
+        this.loadProjectToEditor();
+
+        // saveCurrentProject()는 EditorManager.getCode()로 현재 에디터 내용을 읽어오는데,
+        // 이 시점(ProjectManager.init())엔 아직 EditorManager가 초기화 전이라 기본값을 읽어
+        // 방금 설정한 PRD 내용을 덮어써버린다. 그래서 저장은 직접 처리한다.
+        // 에디터가 준비되면 loadProjectToEditor()의 setCode()가 EditorManager.code를 갱신하므로
+        // 이후의 자동저장부터는 정상적으로 이 프로젝트 내용을 기준으로 동작한다.
+        localStorage.setItem('codecanvas_current_project', JSON.stringify(this.currentProject));
+        this.allProjects.unshift(this.currentProject);
+        this.saveAllProjects();
+        this.updateSaveStatus('saved');
+
+        // entryCode/studentName 등 다른 파라미터는 이후 초기화 단계에서 계속 읽으므로 남겨두고,
+        // studio 전용 파라미터만 제거해 새로고침 시 프로젝트가 중복 생성되지 않게 한다.
+        if (window.history.replaceState) {
+            params.delete('studioPrompt');
+            params.delete('studioTitle');
+            const qs = params.toString();
+            window.history.replaceState({}, document.title, window.location.pathname + (qs ? '?' + qs : ''));
+        }
+
+        return true;
+    },
+
     // 현재 프로젝트 로드
     loadCurrentProject() {
+        if (this._loadStudioHandoff()) return;
         try {
             const saved = localStorage.getItem('codecanvas_current_project');
             if (saved) {

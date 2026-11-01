@@ -324,16 +324,19 @@ body.resizing .preview-section {
 .preview-container.device-mobile,
 .preview-container.device-tablet {
     display: flex;
-    justify-content: center;
+    /* justify-content:center는 칸이 기기 폭보다 좁을 때 왼쪽이 잘려 스크롤로도 못 보므로
+       프레임에 margin:0 auto를 줘서 가운데 정렬하고, 좁으면 왼쪽부터 스크롤되게 한다 */
+    justify-content: flex-start;
     align-items: flex-start;
     overflow: auto;
     background-color: var(--bg-secondary);
-    padding: var(--spacing-md) 0;
+    padding: var(--spacing-md);
 }
 
 .preview-container.device-mobile #preview-frame,
 .preview-container.device-tablet #preview-frame {
     height: 100%;
+    margin: 0 auto;
     flex-shrink: 0;
     border: var(--border-width) solid var(--border-color);
     border-radius: var(--radius-md);
@@ -391,6 +394,49 @@ body.resizing .preview-section {
 
 .console-message.info {
     color: var(--info);
+}
+
+/* 실행 전 안내 배너: 미리보기에서 잘 안 되는 코드를 알려줌 */
+.preview-warning {
+    position: absolute;
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+    right: var(--spacing-sm);
+    z-index: 5;
+    max-height: 60%;
+    overflow-y: auto;
+    padding: var(--spacing-sm) var(--spacing-xl, 32px) var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--warning);
+    border-left-width: 4px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.preview-warning ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+.preview-warning-close {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.preview-warning-close:hover {
+    color: var(--text-primary);
 }
 
 /* --- Shared View Mode --- */
