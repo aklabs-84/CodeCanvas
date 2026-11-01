@@ -14,6 +14,7 @@ import { CdnSearchManager } from './cdn-search.js';
 import { AiAssistant } from './ai-assistant.js';
 import { AdminPanel } from './admin-panel.js';
 import { SubmitAnim } from './submit-anim.js';
+import { FixGuide } from './fix-guide.js';
 
 // 전역 객체로 등록 (다른 모듈에서 접근 가능하도록)
 window.LayoutManager = LayoutManager;
@@ -75,6 +76,8 @@ async function initApp() {
         // 9. 다운로드 관리 초기화
         DownloadManager.init();
         console.log('✅ Download manager initialized');
+
+        FixGuide.init();
 
         // 10. 스니펫 팔레트 초기화
         SnippetManager.init();

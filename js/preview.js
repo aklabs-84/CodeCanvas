@@ -126,6 +126,7 @@ export const PreviewManager = {
         this._clearErrorTabs(); // 실행 시 에러 표시 초기화
         this._showWarnings(this._scanCode(code));
         this.renderPreview(code);
+        window.FixGuide?.onRun();
     },
 
     // 실행 전 코드 점검: 코드캔버스 미리보기에서는 잘 동작하지 않는 패턴을 찾아 안내 문구 목록으로 돌려준다
