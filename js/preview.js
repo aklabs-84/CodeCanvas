@@ -269,6 +269,12 @@ export const PreviewManager = {
         let smartInjections = '';
         let injectedLibs = [];
 
+        // srcdoc 문서는 기준 주소가 코드캔버스 서버라서, 학생 코드의 상대 경로(이미지 등)가
+        // 전부 서버로 가 404 요청이 쌓인다(Vercel CDN 요청 한도 초과 원인). 기준을 about:blank로 막는다.
+        const baseTag = '<base href="about:blank">\n';
+        // about:blank 기준에서는 //host/... 주소가 깨지므로 https:// 로 보정
+        html = html.replace(/(\s(?:src|href)\s*=\s*["'])\/\//gi, '$1https://');
+
         const trimmed = html.trim();
         const isFullDocument = /^<!doctype/i.test(trimmed) || /^<html/i.test(trimmed);
 
@@ -431,9 +437,9 @@ export const PreviewManager = {
             let result = html;
             // <head> 바로 뒤에 콘솔 캡처와 스마트 인젝션 삽입
             if (/<head[^>]*>/i.test(result)) {
-                result = result.replace(/<head([^>]*)>/i, `<head$1>\n${consoleCapture}\n${smartInjections}`);
+                result = result.replace(/<head([^>]*)>/i, `<head$1>\n${baseTag}${consoleCapture}\n${smartInjections}`);
             } else {
-                result = consoleCapture + smartInjections + result;
+                result = baseTag + consoleCapture + smartInjections + result;
             }
 
             // CSS 탭
@@ -464,7 +470,7 @@ export const PreviewManager = {
         return `<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
+${baseTag}<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${consoleCapture}
 ${smartInjections}
