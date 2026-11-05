@@ -78,7 +78,7 @@
 /* 앱 컨테이너 */
 .app-container {
     display: flex;
-    height: calc(100vh - var(--header-height));
+    height: calc(100vh - var(--header-height) - var(--foot-height, 0px));
     overflow: hidden;
     position: relative;
 }

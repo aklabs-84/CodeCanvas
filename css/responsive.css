@@ -142,7 +142,7 @@
 
     /* 메인 컨텐츠 */
     .app-container {
-        height: calc(100vh - var(--header-height));
+        height: calc(100vh - var(--header-height) - var(--foot-height, 0px));
     }
 
     .main-content {

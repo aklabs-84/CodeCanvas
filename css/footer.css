@@ -1,0 +1,45 @@
+/* AKLABS 공통 푸터: 편집기 화면 맨 아래 얇은 한 줄 띠. 높이는 --foot-height로 .app-container가 빼서 계산한다 */
+:root { --foot-height: 36px; }
+
+.aklabs-foot {
+    --f-bg: var(--bg-secondary);
+    --f-ink: var(--text-primary);
+    --f-sub: var(--text-secondary);
+    --f-line: var(--border-color);
+    --f-accent: var(--accent-hover);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px 20px;
+    height: var(--foot-height);
+    padding: 0 var(--spacing-md);
+    border-top: var(--border-width, 1px) solid var(--f-line);
+    background: var(--f-bg);
+    font-family: var(--font-family);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--f-sub);
+    overflow: hidden;
+}
+.aklabs-foot b { color: var(--f-ink); font-weight: 600; letter-spacing: .04em; }
+.aklabs-foot nav { display: flex; gap: 18px; border: 0; padding: 0; margin: 0; }
+.aklabs-foot a {
+    color: var(--f-sub);
+    text-decoration: none;
+    padding: 6px 0;
+    border-bottom: 1px solid transparent;
+}
+.aklabs-foot a:hover,
+.aklabs-foot a:focus-visible { color: var(--f-accent); border-bottom-color: var(--f-accent); }
+
+/* 모바일: 헤더가 두 줄로 늘어나 높이가 달라지므로, 남는 높이를 편집 영역이 알아서 채우게 해서 푸터가 화면 밖으로 밀리지 않게 한다 */
+@media (max-width: 768px) {
+    body:not(.view-mode) { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+    body:not(.view-mode) .app-container { flex: 1 1 auto; min-height: 0; height: auto; }
+    body:not(.view-mode) .aklabs-foot { flex: 0 0 auto; }
+}
+
+/* 공유 보기 화면(미리보기만 꽉 차게 보는 모드)·인쇄에서는 숨긴다 */
+body.view-mode .aklabs-foot { display: none; }
+body.view-mode { --foot-height: 0px; }
+@media print { .aklabs-foot { display: none; } }
