@@ -1,5 +1,5 @@
 /* AKLABS 공통 푸터: 편집기 화면 맨 아래 얇은 한 줄 띠. 높이는 --foot-height로 .app-container가 빼서 계산한다 */
-:root { --foot-height: 36px; }
+:root { --foot-height: 56px; }
 
 .aklabs-foot {
     --f-bg: var(--bg-secondary);
@@ -10,23 +10,26 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 4px 20px;
+    gap: 4px 24px;
+    box-sizing: border-box;
+    min-height: var(--foot-height);
     height: var(--foot-height);
-    padding: 0 var(--spacing-md);
+    padding: 0 24px;
     border-top: var(--border-width, 1px) solid var(--f-line);
     background: var(--f-bg);
     font-family: var(--font-family);
     font-size: 14px;
     line-height: 1.5;
     color: var(--f-sub);
-    overflow: hidden;
-}
+    }
 .aklabs-foot b { color: var(--f-ink); font-weight: 600; letter-spacing: .04em; }
-.aklabs-foot nav { display: flex; gap: 18px; border: 0; padding: 0; margin: 0; }
+.aklabs-foot nav { display: flex; gap: 24px; border: 0; padding: 0; margin: 0; }
 .aklabs-foot a {
     color: var(--f-sub);
     text-decoration: none;
-    padding: 6px 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
     border-bottom: 1px solid transparent;
 }
 .aklabs-foot a:hover,
