@@ -17,6 +17,7 @@
     "vite-plugin-singlefile": "^2.0.1"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0"
+    "@supabase/supabase-js": "^2.110.0",
+    "@vercel/functions": "3.11.1"
   }
 }
